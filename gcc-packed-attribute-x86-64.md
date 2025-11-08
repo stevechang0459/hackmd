@@ -1,8 +1,8 @@
 # 在 x86-64 平台上，關於 GCC 編譯器中 `packed` 屬性的說明
 
-https://gcc.gnu.org/onlinedocs/gcc-15.2.0/gcc/
+在 C 語言的系統程式設計中，尤其是在處理硬體、封包或二進位檔案格式時，精確控制 struct 的記憶體佈局 (layout) 至關重要。GCC 編譯器提供的 `__attribute__((packed))` 屬性便是一個強力工具，它能協助開發者移除編譯器為了對齊 (alignment) 自動添加的填充位元組 (padding)，以建立最緊湊的資料結構。本文將透過 x86-64 平台上的範例，深入探討 packed 屬性的作用、對組合語言的影響，以及其潛在的效能取捨。
 
-**packed**
+## `packed`
 
 The `packed` attribute specifies that a structure member should have the smallest
 possible alignment—one bit for a bit-field and one byte otherwise, unless a larger
@@ -21,7 +21,10 @@ struct foo
 
 *Note:* The 4.1, 4.2 and 4.3 series of GCC ignore the `packed` attribute on bitfields of type `char`. This has been fixed in GCC 4.4 but the change can lead to differences in the structure layout. See the documentation of `-Wpacked-bitfield-compat` for more information.
 
-使用 GCC 編譯器撰寫 C 語言的時候，使用 `__attribute__((packed))` 會告訴編譯器移除所有為了對齊 (alignment) 而加入的「填充位元組」(padding)，盡可能地壓縮結構的大小。
+https://gcc.gnu.org/onlinedocs/gcc-15.2.0/gcc/
+
+
+使用 GCC 編譯器撰寫 C 語言的時候，使用 `__attribute__((packed))` 會告訴編譯器移除所有為了對齊 (alignment) 而加入的填充位元組 (padding)，盡可能地壓縮結構的大小。
 
 下面程式碼示範了 `packed` 屬性的作用，本文使用的開發環境為 MSYS2 UCRT64，編譯器為 GCC 15.1.0 (x86_64-w64-mingw32)，預設 C 標準為 C23：
 
@@ -124,6 +127,32 @@ s.d: 000000E34CFFFA99,       77, 1
 s.e: 000000E34CFFFA9A,       88, 1
 s.f: 000000E34CFFFA9C,     99aa, 2
 ```
+
+## `packed` 屬性的兩種應用方式：
+
+值得注意的是，packed 屬性有兩種主要的應用層級：
+
+1. 應用於整個結構體 (如本文 `pxx` 範例):
+
+```c
+struct pxx { ... } __attribute__((packed));
+```
+
+這是最常見的用法。將 `packed` 屬性放在結構體定義的末尾，會使其效力遍及所有成員。編譯器會移除結構體內 所有 為了對齊而產生的 padding，並將每個成員（位元欄除外）的對齊要求降至 1-byte。如 `pxx` 範例所示，`f`, `a`, `c`, `d`, `e` 皆緊密地排列在 `b` 之後。
+
+2, 應用於特定成員 (如官方文件 `foo` 範例):
+
+```c
+struct foo
+{
+    char a;
+    int x[2] __attribute__ ((packed));
+};
+```
+
+在此範例中，`packed` 屬性僅作用於 `int x[2]` 成員。這會使得 `x` 成員的對齊要求被降至 1-byte。其主要效果是，編譯器不會在 `char a` 之後和 `int x[2]` 之前插入 3 bytes 的 padding (在 x86-64 上，`int` 通常需要 4-byte 對齊)。`struct foo` 的總大小將會是 1 + (4 * 2) = 9 bytes，而非 4 + (4 * 2) = 12 bytes。
+
+本文的 `pxx` 範例使用了第一種方式，接下來的組合語言分析也將基於此。
 
 ## `p` 的位置在哪？
 
