@@ -2,7 +2,7 @@
 
 https://gcc.gnu.org/onlinedocs/gcc-15.2.0/gcc/
 
-**packed** 
+**packed**
 
 The `packed` attribute specifies that a structure member should have the smallest
 possible alignment—one bit for a bit-field and one byte otherwise, unless a larger
@@ -97,7 +97,7 @@ int main(int argc, char *argv[])
 
     return 0;
 }
-``` 
+```
 
 執行結果為：
 
@@ -453,7 +453,7 @@ main:
  # main.c:71: }
 	addq	$64, %rsp	 #,
 	popq	%rbp	 #
-	ret	
+	ret
 	.seh_endproc
 	.def	__main;	.scl	2;	.type	32;	.endef
 	.ident	"GCC: (Rev5, Built by MSYS2 project) 15.1.0"
@@ -590,7 +590,7 @@ main:
 
 ```
  # main.c:52:     memset(&s, 0, sizeof(s));
-	leaq	-32(%rbp), %rax	 # 將 `s` 的位址 (%rbp - 32) 載入到 %rax 中 
+	leaq	-32(%rbp), %rax	 # 將 `s` 的位址 (%rbp - 32) 載入到 %rax 中
 	movl	$16, %r8d	         # 設定第 3 個參數，size = 16，到 %r8d
 	movl	$0, %edx	         # 設定第 2 個參數，value = 0，到 %edx
 	movq	%rax, %rcx	         # 設定第 1 個參數，dest = s 的位址，到 %rcx
@@ -611,12 +611,12 @@ main:
 
 結構 `s` 的memory layout 整理如下：
 * `s` 的起始位址被放在 `-32(%rbp)`。`%rbp` - 32 保證是至少 4-byte aligned。
-* `s.a` (4 bytes) 被放在 `-32(%rbp)`。
-* `s.b` (2 bytes) 被放在 `-28(%rbp)` ( = -32 + 4 )。
+* `s.a` (1 bytes) 被放在 `-32(%rbp)`。
+* `s.b` (4 bytes) 被放在 `-28(%rbp)` ( = -32 + 4 )。
 * `s.c` (1 byte) 被放在 `-24(%rbp)` ( = -28 + 4 )。
 * `s.d` (1 byte) 被放在 `-23(%rbp)` ( = -24 + 1 )。
 * `s.e` (1 byte) 被放在 `-22(%rbp)` ( = -23 + 1 )。
-* `s.f` (1 byte) 被放在 `-20(%rbp)` ( = -22 + 2 )。
+* `s.f` (2 byte) 被放在 `-20(%rbp)` ( = -22 + 2 )。
 
 ---
 
@@ -637,10 +637,10 @@ main:
 ```
 
 * 在 `movl $0, %eax` 這行指令中，`%eax` 是 x86-64 架構上預設的函數傳回值暫存器。
-* `addq $64, %rsp` 和 `popq %rbp`：這兩行是函數前導 (Prologue) 的逆操作，它們會銷毀目前的 stack frame，並將 stack pointer 與 frame pointer 恢復到呼叫 main 函數之前的狀態。
+* `addq $64, %rsp` 和 `popq %rbp`：這兩行是函數前導 (Prologue) 的逆操作，它們會銷毀目前的 stack frame，並將 stack pointer 與 frame pointer 恢復到呼叫 `main` 函數之前的狀態。
 * `ret`：從 `main` 函數返回。
 
-## GCC Options
+## 附錄 A: GCC Options
 
 若想要閱讀帶有 C 註解的組合語言，但又不想產生額外除錯資訊的需求，編譯時我們可以使用下列 GCC 選項：
 
@@ -754,4 +754,4 @@ precise format of the comments is subject to change.
 Using the GNU Compiler Collection For gcc version 15.2.0
 https://gcc.gnu.org/onlinedocs/gcc-15.2.0/gcc/
 
-###### tags: `packed` `GCC` `C` `MSYS2` `mingw-w64` 
+###### tags: `packed` `GCC` `C` `MSYS2` `mingw-w64`
