@@ -21,8 +21,7 @@ struct foo
 
 *Note:* The 4.1, 4.2 and 4.3 series of GCC ignore the `packed` attribute on bitfields of type `char`. This has been fixed in GCC 4.4 but the change can lead to differences in the structure layout. See the documentation of `-Wpacked-bitfield-compat` for more information.
 
-https://gcc.gnu.org/onlinedocs/gcc-15.2.0/gcc/
-
+<https://gcc.gnu.org/onlinedocs/gcc-15.2.0/gcc/>
 
 使用 GCC 編譯器撰寫 C 語言的時候，使用 `__attribute__((packed))` 會告訴編譯器移除所有為了對齊 (alignment) 而加入的填充位元組 (padding)，盡可能地壓縮結構的大小。
 
@@ -150,7 +149,7 @@ struct foo
 };
 ```
 
-在此範例中，`packed` 屬性僅作用於 `int x[2]` 成員。這會使得 `x` 成員的對齊要求被降至 1-byte。其主要效果是，編譯器不會在 `char a` 之後和 `int x[2]` 之前插入 3 bytes 的 padding (在 x86-64 上，`int` 通常需要 4-byte 對齊)。`struct foo` 的總大小將會是 1 + (4 * 2) = 9 bytes，而非 4 + (4 * 2) = 12 bytes。
+在此範例中，`packed` 屬性僅作用於 `int x[2]` 成員。這會使得 `x` 成員的對齊要求被降至 1-byte。其主要效果是，編譯器不會在 `char a` 之後和 `int x[2]` 之前插入 3 bytes 的 padding (在 x86-64 上，`int` 通常需要 4-byte 對齊)。`struct foo` 的總大小將會是 1 + (4 \* 2) = 9 bytes，而非 4 + (4 \* 2) = 12 bytes。
 
 本文的 `pxx` 範例使用了第一種方式，接下來的組合語言分析也將基於此。
 
@@ -162,7 +161,7 @@ subq	$64, %rsp
 
 當 `main` 函數開始執行時，`subq $64, %rsp` 指令會為所有的區域變數 (包括 `p`, `s`, `x` 等) 在 stack 上保留 64 bytes 的空間。編譯器的工作就是決定這 64 bytes 空間中，哪個位元組要放哪個變數。
 
-```
+```text
 leaq -14(%rbp), %rax
 ```
 
