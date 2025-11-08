@@ -1,8 +1,8 @@
 # 在 x86-64 平台上，關於 GCC 編譯器中 `packed` 屬性的說明
 
-在 C 語言的系統程式設計中，尤其是在處理硬體、封包或二進位檔案格式時，精確控制 struct 的記憶體佈局 (layout) 至關重要。GCC 編譯器提供的 `__attribute__((packed))` 屬性便是一個強力工具，它能協助開發者移除編譯器為了對齊 (alignment) 自動添加的填充位元組 (padding)，以建立最緊湊的資料結構。本文將透過 x86-64 平台上的範例，深入探討 packed 屬性的作用、對組合語言的影響，以及其潛在的效能取捨。
+在 C 語言的系統程式設計中，特別是在處理硬體、封包或二進位檔案格式的時後，精確控制 `struct` 的記憶體佈局 (layout) 至關重要。GCC 編譯器提供的 `__attribute__((packed))` 屬性便是一個強力工具，它能協助開發者移除編譯器為了對齊 (alignment) 自動添加的填充位元組 (padding)，以建立最緊湊的資料結構。本文將透過 x86-64 平台上的範例，深入探討 `packed` 屬性的作用、對組合語言的影響，以及其潛在的效能取捨。
 
-## `packed`
+## 關於 `packed`
 
 The `packed` attribute specifies that a structure member should have the smallest
 possible alignment—one bit for a bit-field and one byte otherwise, unless a larger
@@ -22,6 +22,8 @@ struct foo
 *Note:* The 4.1, 4.2 and 4.3 series of GCC ignore the `packed` attribute on bitfields of type `char`. This has been fixed in GCC 4.4 but the change can lead to differences in the structure layout. See the documentation of `-Wpacked-bitfield-compat` for more information.
 
 <https://gcc.gnu.org/onlinedocs/gcc-15.2.0/gcc/>
+
+## C 程式碼
 
 使用 GCC 編譯器撰寫 C 語言的時候，使用 `__attribute__((packed))` 會告訴編譯器移除所有為了對齊 (alignment) 而加入的填充位元組 (padding)，盡可能地壓縮結構的大小。
 
@@ -101,119 +103,7 @@ int main(int argc, char *argv[])
 }
 ```
 
-執行結果為：
-
-```text
-# ./bin/c-test.exe
-sizeof(p):10
-&p:000000E34CFFFAA2
-p.b: 000000E34CFFFAA2, 22334455, 4
-p.f: 000000E34CFFFAA6,     99aa, 2
-p.a: 000000E34CFFFAA8,       11, 1
-p.c: 000000E34CFFFAA9,       66, 1
-p.d: 000000E34CFFFAAA,       77, 1
-p.e: 000000E34CFFFAAB,       88, 1
-
-x  : 22334455
-p.b: 22334455
-
-sizeof(s):16
-&s:000000E34CFFFA90
-s.a: 000000E34CFFFA90,       11, 1
-s.b: 000000E34CFFFA94, 22334455, 4
-s.c: 000000E34CFFFA98,       66, 1
-s.d: 000000E34CFFFA99,       77, 1
-s.e: 000000E34CFFFA9A,       88, 1
-s.f: 000000E34CFFFA9C,     99aa, 2
-```
-
-## `packed` 屬性的兩種應用方式：
-
-`packed` 屬性有兩種使用方式：
-
-1. 應用於整個結構體 (如本文 `pxx` 範例):
-
-```c
-struct pxx { ... } __attribute__((packed));
-```
-
-這是最常見的用法。將 `packed` 屬性放在結構體定義的末尾，會使其效力遍及所有成員。編譯器會移除結構體內 所有 為了對齊而產生的 padding，並將每個成員（位元欄除外）的對齊要求降至 1-byte。如 `pxx` 範例所示，`f`, `a`, `c`, `d`, `e` 皆緊密地排列在 `b` 之後。
-
-2. 應用於特定成員 (如官方文件 `foo` 範例):
-
-```c
-struct foo
-{
-    char a;
-    int x[2] __attribute__ ((packed));
-};
-```
-
-在此範例中，`packed` 屬性僅作用於 `int x[2]` 成員。這會使得 `x` 成員的對齊要求被降至 1-byte。其主要效果是，編譯器不會在 `char a` 之後和 `int x[2]` 之前插入 3 bytes 的 padding (在 x86-64 上，`int` 通常需要 4-byte 對齊)。`struct foo` 的總大小將會是 1 + (4 \* 2) = 9 bytes，而非 4 + (4 \* 2) = 12 bytes。
-
-本文的 `pxx` 範例使用了第一種方式，接下來的組合語言分析也將基於此。
-
-## `p` 的位置在哪？
-
-```text
-subq	$64, %rsp
-```
-
-當 `main` 函數開始執行時，`subq $64, %rsp` 指令會為所有的區域變數 (包括 `p`, `s`, `x` 等) 在 stack 上保留 64 bytes 的空間。編譯器的工作就是決定這 64 bytes 空間中，哪個位元組要放哪個變數。
-
-```text
-leaq -14(%rbp), %rax
-```
-
-在這個例子中，編譯器決定把 `p` 變數（我們知道它有 10 bytes）放在相對於 `%rbp` (frame pointer) 位移 -14 的地方。
-
-```c
-memset(&p, 0, sizeof(p));
-```
-
-```text
-# main.c:27:     memset(&p, 0, sizeof(p));
-.loc 1 27 5
-leaq	-14(%rbp), %rax	 #, tmp123
-movl	$10, %r8d	 #,
-movl	$0, %edx	 #,
-movq	%rax, %rcx	 # tmp123,
-call	memset	 #
-```
-
-## `b` 的地址會是 4-byte align 嗎？
-
-`b` 的地址是 `struct pxx` 結構本身的地址，因為 `b` 是第一個成員，offset 為 0。
-
-`__attribute__((packed))` 會產生兩個主要影響：
-
-1. `packed` 結構的總大小不一定會是 4 的倍數。
-2. 結構本身的對齊要求 (alignment requirement) 被降低。
-
-我們可以透過宣告存放 `packed` 結構的陣列來說明：
-
-```c
-struct pxx my_array[2];
-```
-
-假設 `my_array[0]` 的地址，也就是 `my_array[0].b` 的地址，恰好是 4-byte aligned，例如 0x1000。則 `my_array[1]` 的地址將會是 0x1000 + `sizeof(struct pxx)`，也就是 0x1000 + 10 = 0x100A。0x100A 不是 4 的倍數，因此 `my_array[1].b` 沒有 4-byte align。
-
-`packed` 屬性不僅移除了 padding，它還將整個 `struct pxx` 的對齊要求降至 1 byte。
-
-這意味著，即使我們只宣告一個單一變數：
-
-```c
-void my_function() {
-    uint8_t some_char;
-    struct pxx my_var; // 編譯器沒有義務將 my_var 放在 4-byte 邊界上
-}
-```
-
-編譯器完全可能將 `my_var` 緊跟在 `some_char` 後面存放，例如 `some_char` 在 0x0FFF，`my_var` 就可能從 0x1000 開始（這種情況是 aligned）。但也可能 `some_char` 在 0x1000，而 `my_var` 從 0x1001 開始（這種情況 `my_var.b` 就是 unaligned）。
-
-因為 `packed` 屬性的緣故，`b` 的地址不保證一定是 4-byte aligned。在陣列中幾乎可以肯定會遇到 unaligned 的情況。
-
-## 程式碼 `main.s` 的說明
+## Assembly
 
 ```=
 	.file	"main.c"
@@ -490,6 +380,120 @@ main:
 	.def	printf;	.scl	2;	.type	32;	.endef
 	.def	putchar;	.scl	2;	.type	32;	.endef
 ```
+
+## 執行結果
+
+```text
+# ./bin/c-test.exe
+sizeof(p):10
+&p:000000E34CFFFAA2
+p.b: 000000E34CFFFAA2, 22334455, 4
+p.f: 000000E34CFFFAA6,     99aa, 2
+p.a: 000000E34CFFFAA8,       11, 1
+p.c: 000000E34CFFFAA9,       66, 1
+p.d: 000000E34CFFFAAA,       77, 1
+p.e: 000000E34CFFFAAB,       88, 1
+
+x  : 22334455
+p.b: 22334455
+
+sizeof(s):16
+&s:000000E34CFFFA90
+s.a: 000000E34CFFFA90,       11, 1
+s.b: 000000E34CFFFA94, 22334455, 4
+s.c: 000000E34CFFFA98,       66, 1
+s.d: 000000E34CFFFA99,       77, 1
+s.e: 000000E34CFFFA9A,       88, 1
+s.f: 000000E34CFFFA9C,     99aa, 2
+```
+
+## `packed` 屬性的兩種應用方式
+
+`packed` 屬性有兩種使用方式：
+
+1. 應用於整個結構體 (如本文 `pxx` 範例):
+
+```c
+struct pxx { ... } __attribute__((packed));
+```
+
+這是最常見的用法。將 `packed` 屬性放在結構體定義的末尾，會使其效力遍及所有成員。編譯器會移除結構體內 所有 為了對齊而產生的 padding，並將每個成員（位元欄除外）的對齊要求降至 1-byte。如 `pxx` 範例所示，`f`, `a`, `c`, `d`, `e` 皆緊密地排列在 `b` 之後。
+
+2. 應用於特定成員 (如官方文件 `foo` 範例):
+
+```c
+struct foo
+{
+    char a;
+    int x[2] __attribute__ ((packed));
+};
+```
+
+在此範例中，`packed` 屬性僅作用於 `int x[2]` 成員。這會使得 `x` 成員的對齊要求被降至 1-byte。其主要效果是，編譯器不會在 `char a` 之後和 `int x[2]` 之前插入 3 bytes 的 padding (在 x86-64 上，`int` 通常需要 4-byte 對齊)。`struct foo` 的總大小將會是 1 + (4 \* 2) = 9 bytes，而非 4 + (4 \* 2) = 12 bytes。
+
+本文的 `pxx` 範例展示了第一種方式，接下來的組合語言分析也將基於此應用來展開。
+
+## `p` 的位置在哪？
+
+```text
+subq	$64, %rsp
+```
+
+當 `main` 函數開始執行時，`subq $64, %rsp` 指令會為所有的區域變數 (包括 `p`, `s`, `x` 等) 在 stack 上保留 64 bytes 的空間。編譯器的工作就是決定這 64 bytes 空間中，哪個位元組要放哪個變數。
+
+```text
+leaq -14(%rbp), %rax
+```
+
+在這個例子中，編譯器決定把 `p` 變數（我們知道它有 10 bytes）放在相對於 `%rbp` (frame pointer) 位移 -14 的地方。
+
+```c
+memset(&p, 0, sizeof(p));
+```
+
+```text
+# main.c:27:     memset(&p, 0, sizeof(p));
+.loc 1 27 5
+leaq	-14(%rbp), %rax	 #, tmp123
+movl	$10, %r8d	 #,
+movl	$0, %edx	 #,
+movq	%rax, %rcx	 # tmp123,
+call	memset	 #
+```
+
+## `b` 的地址會是 4-byte align 嗎？
+
+`b` 的地址是 `struct pxx` 結構本身的地址，因為 `b` 是第一個成員，offset 為 0。
+
+`__attribute__((packed))` 會產生兩個主要影響：
+
+1. `packed` 結構的總大小不一定會是 4 的倍數。
+2. 結構本身的對齊要求 (alignment requirement) 被降低。
+
+我們可以透過宣告存放 `packed` 結構的陣列來說明：
+
+```c
+struct pxx my_array[2];
+```
+
+假設 `my_array[0]` 的地址，也就是 `my_array[0].b` 的地址，恰好是 4-byte aligned，例如 0x1000。則 `my_array[1]` 的地址將會是 0x1000 + `sizeof(struct pxx)`，也就是 0x1000 + 10 = 0x100A。0x100A 不是 4 的倍數，因此 `my_array[1].b` 沒有 4-byte align。
+
+`packed` 屬性不僅移除了 padding，它還將整個 `struct pxx` 的對齊要求降至 1 byte。
+
+這意味著，即使我們只宣告一個單一變數：
+
+```c
+void my_function() {
+    uint8_t some_char;
+    struct pxx my_var; // 編譯器沒有義務將 my_var 放在 4-byte 邊界上
+}
+```
+
+編譯器完全可能將 `my_var` 緊跟在 `some_char` 後面存放，例如 `some_char` 在 0x0FFF，`my_var` 就可能從 0x1000 開始（這種情況是 aligned）。但也可能 `some_char` 在 0x1000，而 `my_var` 從 0x1001 開始（這種情況 `my_var.b` 就是 unaligned）。
+
+因為 `packed` 屬性的緣故，`b` 的地址不保證一定是 4-byte aligned。在陣列中幾乎可以肯定會遇到 unaligned 的情況。
+
+## 程式碼 `main.s` 的說明
 
 ### 1. 檔案標頭與編譯器選項
 
