@@ -453,7 +453,7 @@ main:
  # main.c:71: }
 	addq	$64, %rsp	         # 將 stack pointer 加上 64 bytes，釋放區域變數空間。
 	popq	%rbp	                 # 還原 caller 的 frame pointer。
-	ret	                         # 返回至 caller 呼叫處。
+	ret	                         # 返回至 caller 的呼叫處。
 	.seh_endproc
 	.def	__main;	.scl	2;	.type	32;	.endef
 	.ident	"GCC: (Rev5, Built by MSYS2 project) 15.1.0"
@@ -632,7 +632,7 @@ main:
  # main.c:71: }
 	addq	$64, %rsp	         # 將 stack pointer 加上 64 bytes，釋放區域變數空間。
 	popq	%rbp	                 # 還原 caller 的 frame pointer。
-	ret	                         # 返回至 caller 呼叫處。
+	ret	                         # 返回至 caller 的呼叫處。
 	.seh_endproc
 ```
 
