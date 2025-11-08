@@ -236,35 +236,35 @@ void my_function() {
 	.def	main;	.scl	2;	.type	32;	.endef
 	.seh_proc	main
 main:
-	pushq	%rbp	 #
+	pushq	%rbp	                 # 備份 caller 的 frame pointer (%rbp)
 	.seh_pushreg	%rbp
-	movq	%rsp, %rbp	 #,
+	movq	%rsp, %rbp	         # 將目前的 stack pointer (%rsp) 備份到 frame pointer (%rbp) 中
 	.seh_setframe	%rbp, 0
-	subq	$64, %rsp	 #,
+	subq	$64, %rsp	         # 將 stack pointer 減去 64 bytes，為所有的區域變數預留空間。
 	.seh_stackalloc	64
 	.seh_endprologue
-	movl	%ecx, 16(%rbp)	 # argc, argc
-	movq	%rdx, 24(%rbp)	 # argv, argv
+	movl	%ecx, 16(%rbp)	         # 儲存傳入的第1個參數 `argc`
+	movq	%rdx, 24(%rbp)	         # 儲存傳入的第2個參數 `argv`
  # main.c:25: {
-	call	__main	 #
- # main.c:27:     memset(&p, 0, sizeof(p));
-	leaq	-14(%rbp), %rax	 #, tmp123
-	movl	$10, %r8d	 #,
-	movl	$0, %edx	 #,
-	movq	%rax, %rcx	 # tmp123,
-	call	memset	 #
- # main.c:29:     p.a = 0x11;
-	movb	$17, -8(%rbp)	 #, p.a
- # main.c:30:     p.b = 0x22334455;
-	movl	$573785173, -14(%rbp)	 #, p.b
- # main.c:31:     p.c = 0x66;
-	movb	$102, -7(%rbp)	 #, p.c
- # main.c:32:     p.d = 0x77;
-	movb	$119, -6(%rbp)	 #, p.d
- # main.c:33:     p.e = 0x88;
-	movb	$-120, -5(%rbp)	 #, p.e
- # main.c:34:     p.f = 0x99AA;
-	movw	$-26198, -10(%rbp)	 #, p.f
+	call	__main	                 # 呼叫 C 語言執行環境(runtime)的初始化
+ # main.c:27:     memset(&p, 0, sizeof(p));
+	leaq	-14(%rbp), %rax	         # 將 `p` 的位址 (%rbp - 14) 載入到 %rax 中
+	movl	$10, %r8d	         # 設定第 3 個參數，size = 10，到 %r8d
+	movl	$0, %edx	         # 設定第 2 個參數，value = 0，到 %edx
+	movq	%rax, %rcx	         # 設定第 1 個參數，dest = p 的位址，到 %rcx
+	call	memset	                 # 呼叫 memset(%rcx, %edx, %r8d)
+ # main.c:29:     p.a = 0x11;
+	movb	$17, -8(%rbp)	         # 寫入 1 byte (17 = 0x11) 到 (%rbp - 8)
+ # main.c:30:     p.b = 0x22334455;
+	movl	$573785173, -14(%rbp)	 # 寫入 4 bytes (long) 到 (%rbp - 14)
+ # main.c:31:     p.c = 0x66;
+	movb	$102, -7(%rbp)	         # 寫入 1 byte 到 (%rbp - 7)
+ # main.c:32:     p.d = 0x77;
+	movb	$119, -6(%rbp)	         # 寫入 1 byte 到 (%rbp - 6)
+ # main.c:33:     p.e = 0x88;
+	movb	$-120, -5(%rbp)	         # 寫入 1 byte 到 (%rbp - 5)
+ # main.c:34:     p.f = 0x99AA;
+	movw	$-26198, -10(%rbp)	 # 寫入 2 bytes (word) 到 (%rbp - 10)
  # main.c:36:     printf("sizeof(p):%lld\n", sizeof(p));
 	leaq	.LC0(%rip), %rax	 #, tmp124
 	movl	$10, %edx	 #,
@@ -358,23 +358,23 @@ main:
 	movl	$10, %ecx	 #,
 	call	putchar	 #
  # main.c:52:     memset(&s, 0, sizeof(s));
-	leaq	-32(%rbp), %rax	 #, tmp148
-	movl	$16, %r8d	 #,
-	movl	$0, %edx	 #,
-	movq	%rax, %rcx	 # tmp148,
-	call	memset	 #
+	leaq	-32(%rbp), %rax	         # 將 `s` 的位址 (%rbp - 32) 載入到 %rax 中
+	movl	$16, %r8d	         # 設定第 3 個參數，size = 16，到 %r8d
+	movl	$0, %edx	         # 設定第 2 個參數，value = 0，到 %edx
+	movq	%rax, %rcx	         # 設定第 1 個參數，dest = s 的位址，到 %rcx
+	call	memset	                 # 呼叫 memset(%rcx, %edx, %r8d)
  # main.c:54:     s.a = 0x11;
-	movb	$17, -32(%rbp)	 #, s.a
+	movb	$17, -32(%rbp)	         # 寫入 1 byte 到 (%rbp - 32)
  # main.c:55:     s.b = 0x22334455;
-	movl	$573785173, -28(%rbp)	 #, s.b
+	movl	$573785173, -28(%rbp)	 # 寫入 4 bytes 到 (%rbp - 28)
  # main.c:56:     s.c = 0x66;
-	movb	$102, -24(%rbp)	 #, s.c
+	movb	$102, -24(%rbp)	         # 寫入 1 byte 到 (%rbp - 24)
  # main.c:57:     s.d = 0x77;
-	movb	$119, -23(%rbp)	 #, s.d
+	movb	$119, -23(%rbp)	         # 寫入 1 byte 到 (%rbp - 23)
  # main.c:58:     s.e = 0x88;
-	movb	$-120, -22(%rbp)	 #, s.e
+	movb	$-120, -22(%rbp)	 # 寫入 1 byte 到 (%rbp - 22)
  # main.c:59:     s.f = 0x99AA;
-	movw	$-26198, -20(%rbp)	 #, s.f
+	movw	$-26198, -20(%rbp)	 # 寫入 2 bytes 到 (%rbp - 20)
  # main.c:61:     printf("sizeof(s):%lld\n", sizeof(s));
 	leaq	.LC10(%rip), %rax	 #, tmp149
 	movl	$16, %edx	 #,
@@ -449,11 +449,11 @@ main:
 	movq	%rax, %rcx	 # tmp168,
 	call	printf	 #
  # main.c:70:     return 0;
-	movl	$0, %eax	 #, _60
+	movl	$0, %eax	         # 將傳回值 0 放入 %eax 暫存器。
  # main.c:71: }
-	addq	$64, %rsp	 #,
-	popq	%rbp	 #
-	ret
+	addq	$64, %rsp	         # 將 stack pointer 加上 64 bytes，釋放區域變數空間。
+	popq	%rbp	                 # 還原 caller 的 frame pointer。
+	ret	                         # 返回至 caller 呼叫處。
 	.seh_endproc
 	.def	__main;	.scl	2;	.type	32;	.endef
 	.ident	"GCC: (Rev5, Built by MSYS2 project) 15.1.0"
@@ -531,17 +531,17 @@ main:
 	.def	main;	.scl	2;	.type	32;	.endef
 	.seh_proc	main
 main:
-	pushq	%rbp	         # 備份 caller 的 frame pointer (%rbp)。
+	pushq	%rbp	                 # 備份 caller 的 frame pointer (%rbp)
 	.seh_pushreg	%rbp
-	movq	%rsp, %rbp	 # 將目前的 stack pointer (%rsp) 備份到 frame pointer (%rbp) 中。
+	movq	%rsp, %rbp	         # 將目前的 stack pointer (%rsp) 備份到 frame pointer (%rbp) 中
 	.seh_setframe	%rbp, 0
-	subq	$64, %rsp	 # 將 stack pointer 減去 64 bytes，為所有的區域變數預留空間。
+	subq	$64, %rsp	         # 將 stack pointer 減去 64 bytes，為所有的區域變數預留空間。
 	.seh_stackalloc	64
 	.seh_endprologue
-	movl	%ecx, 16(%rbp)	 # argc, 儲存傳入的第1個參數 `argc`。
-	movq	%rdx, 24(%rbp)	 # argv, 儲存傳入的第2個參數 `argv`。
+	movl	%ecx, 16(%rbp)	         # 儲存傳入的第1個參數 `argc`
+	movq	%rdx, 24(%rbp)	         # 儲存傳入的第2個參數 `argv`
  # main.c:25: {
-	call	__main	         # 呼叫 C 語言執行環境(runtime)的初始化。
+	call	__main	                 # 呼叫 C 語言執行環境(runtime)的初始化
 ```
 
 * main: 是函數的起點。
@@ -551,8 +551,8 @@ main:
 ### 4. packed 結構 'p' 的操作
 
 ```
-# main.c:27:     memset(&p, 0, sizeof(p));
-	leaq	-14(%rbp), %rax	     # 將 `p` 的位址 (%rbp - 14) 載入到 %rax 中
+ # main.c:27:     memset(&p, 0, sizeof(p));
+	leaq	-14(%rbp), %rax	         # 將 `p` 的位址 (%rbp - 14) 載入到 %rax 中
 	movl	$10, %r8d	         # 設定第 3 個參數，size = 10，到 %r8d
 	movl	$0, %edx	         # 設定第 2 個參數，value = 0，到 %edx
 	movq	%rax, %rcx	         # 設定第 1 個參數，dest = p 的位址，到 %rcx
@@ -590,23 +590,23 @@ main:
 
 ```
  # main.c:52:     memset(&s, 0, sizeof(s));
-	leaq	-32(%rbp), %rax	 # 將 `s` 的位址 (%rbp - 32) 載入到 %rax 中
+	leaq	-32(%rbp), %rax	         # 將 `s` 的位址 (%rbp - 32) 載入到 %rax 中
 	movl	$16, %r8d	         # 設定第 3 個參數，size = 16，到 %r8d
 	movl	$0, %edx	         # 設定第 2 個參數，value = 0，到 %edx
 	movq	%rax, %rcx	         # 設定第 1 個參數，dest = s 的位址，到 %rcx
 	call	memset	                 # 呼叫 memset(%rcx, %edx, %r8d)
  # main.c:54:     s.a = 0x11;
-	movb	$17, -32(%rbp)	         # 寫入 1 byte 到 (rbp-32)
+	movb	$17, -32(%rbp)	         # 寫入 1 byte 到 (%rbp - 32)
  # main.c:55:     s.b = 0x22334455;
-	movl	$573785173, -28(%rbp)	 # 寫入 4 bytes 到 (rbp-28)
+	movl	$573785173, -28(%rbp)	 # 寫入 4 bytes 到 (%rbp - 28)
  # main.c:56:     s.c = 0x66;
-	movb	$102, -24(%rbp)	         # 寫入 1 byte 到 (rbp-24)
+	movb	$102, -24(%rbp)	         # 寫入 1 byte 到 (%rbp - 24)
  # main.c:57:     s.d = 0x77;
-	movb	$119, -23(%rbp)	         #, s.d
+	movb	$119, -23(%rbp)	         # 寫入 1 byte 到 (%rbp - 23)
  # main.c:58:     s.e = 0x88;
-	movb	$-120, -22(%rbp)	 #, s.e
+	movb	$-120, -22(%rbp)	 # 寫入 1 byte 到 (%rbp - 22)
  # main.c:59:     s.f = 0x99AA;
-	movw	$-26198, -20(%rbp)	 #, s.f
+	movw	$-26198, -20(%rbp)	 # 寫入 2 bytes 到 (%rbp - 20)
 ```
 
 結構 `s` 的memory layout 整理如下：
@@ -628,11 +628,11 @@ main:
 
 ```
  # main.c:70:     return 0;
-	movl	$0, %eax	 # 將傳回值 0 放入 %eax 暫存器。
+	movl	$0, %eax	         # 將傳回值 0 放入 %eax 暫存器。
  # main.c:71: }
-	addq	$64, %rsp	 # 將 stack pointer 加上 64 bytes，釋放區域變數空間。
-	popq	%rbp	         # 還原 caller 的 frame pointer。
-	ret	                 # 返回至 caller 呼叫處。
+	addq	$64, %rsp	         # 將 stack pointer 加上 64 bytes，釋放區域變數空間。
+	popq	%rbp	                 # 還原 caller 的 frame pointer。
+	ret	                         # 返回至 caller 呼叫處。
 	.seh_endproc
 ```
 
