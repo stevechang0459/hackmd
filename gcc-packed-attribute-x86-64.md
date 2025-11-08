@@ -101,7 +101,7 @@ int main(int argc, char *argv[])
 
 執行結果為：
 
-```
+```text
 # ./bin/c-test.exe
 sizeof(p):10
 &p:000000E34CFFFAA2
@@ -127,7 +127,7 @@ s.f: 000000E34CFFFA9C,     99aa, 2
 
 ## `p` 的位置在哪？
 
-```
+```text
 subq	$64, %rsp
 ```
 
@@ -143,7 +143,7 @@ leaq -14(%rbp), %rax
 memset(&p, 0, sizeof(p));
 ```
 
-```
+```text
 # main.c:27:     memset(&p, 0, sizeof(p));
 .loc 1 27 5
 leaq	-14(%rbp), %rax	 #, tmp123
@@ -155,9 +155,10 @@ call	memset	 #
 
 ## `b` 的地址會是 4-byte align 嗎？
 
-`b` 的地址是 `struct pxx` 變數本身的地址，因為 `b` 是第一個成員，offset 為 0。
+`b` 的地址是 `struct pxx` 結構本身的地址，因為 `b` 是第一個成員，offset 為 0。
 
 `__attribute__((packed))` 會產生兩個主要影響：
+
 1. `packed` 結構的總大小不一定會是 4 的倍數。
 2. 結構本身的對齊要求 (alignment requirement) 被降低。
 
