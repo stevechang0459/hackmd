@@ -640,6 +640,33 @@ main:
 * `addq $64, %rsp` 和 `popq %rbp`：這兩行是函數前導 (Prologue) 的逆操作，它們會銷毀目前的 stack frame，並將 stack pointer 與 frame pointer 恢復到呼叫 `main` 函數之前的狀態。
 * `ret`：從 `main` 函數返回。
 
+## 使用 `packed` 的時機
+
+`packed` 屬性是一個強大的工具，但它犧牲了效能來換取空間。
+
+### 效能取捨 (Performance Trade-off)
+1. CPU 存取速度：現代 CPU (如 x86-64) 被設計為在「對齊」的記憶體位址上讀取資料效率最高。例如，讀取一個 4-byte uint32_t 時，如果其位址是 4 的倍數 (如 0x...A94)，CPU 通常可以在一個時脈週期內完成。
+2. Unaligned 存取懲罰：當 CPU 被要求從一個「未對齊」的位址 (如 0x...AA2) 讀取 4 bytes 資料時，它無法一次完成。CPU 必須執行額外的工作，例如：
+    * 讀取兩次記憶體 (例如，一次讀取 0x...AA0 到 0x...AA3，另一次讀取 0x...AA4 到 0x...AA7)。
+    * 透過內部位移和遮罩 (shifting and masking) 來組合出所需的 4 bytes 資料 (0x...AA2 到 0x...AA5)。
+這個過程會比對齊存取慢上許多。
+
+在本文的例子中，`movl $573785173, -14(%rbp)` 就是一個 unaligned 存取，它的效能會低於 `movl $573785173, -28(%rbp)`。
+
+### 架構差異
+
+值得注意的是，雖然 x86-64 (CISC) 允許 unaligned 存取 (但有效能懲罰)，許多 RISC 架構 (如 ARM) 預設情況下不允許 unaligned 存取。在這些平台上，嘗試讀取 unaligned 位址可能會觸發 Exception 並使程式崩潰。
+
+### 合理的使用時機
+
+基於上述的種種考量，我們不應該為了節省一點點記憶體空間而濫用 `packed` 屬性，它僅須在適當的時機使用，常見情境包括：
+* **硬體暫存器映射**：當 C 結構需要直接映射 (map) 到一個硬體的暫存器佈局 (layout) 時，而該佈局不符合 C 語言的對齊規則。
+* **封包定義**：定義通訊協定 (protocol) 的封包結構時，若需要確保沒有任何 padding 以符合協定規範的確切位元組佈局時，會利用 `packed` 屬性來優化/簡化程式碼設計。
+* **檔案格式**：讀取或寫入特定且緊湊的二進位檔案格式 (例如，某些圖片檔、音訊檔的檔頭)。
+* **系統互通性**：當需要與其他系統 (或使用不同編譯器、不同 pack 規則的程式) 交換資料時，`packed` 屬性可以確保雙方對記憶體佈局有相同的認知。
+
+除非我們正在處理上述情況，否則應該優先使用 C 語言的預設對齊規則，因為這會是編譯器為我們的平台所做的最佳效能優化。
+
 ## 附錄 A: GCC Options
 
 若想要閱讀帶有 C 註解的組合語言，但又不想產生額外除錯資訊的需求，編譯時我們可以使用下列 GCC 選項：
@@ -754,4 +781,4 @@ precise format of the comments is subject to change.
 Using the GNU Compiler Collection For gcc version 15.2.0
 https://gcc.gnu.org/onlinedocs/gcc-15.2.0/gcc/
 
-###### tags: `packed` `GCC` `C` `MSYS2` `mingw-w64`
+###### tags: `GCC` `packed` `C` `MSYS2` `mingw-w64`
