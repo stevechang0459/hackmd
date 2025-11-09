@@ -155,20 +155,6 @@ struct foo
 
 本文的 `struct pxx` 範例展示了第一種方式，接下來的組合語言分析也將基於此應用來展開。
 
-### 結構 `p` 的位置在哪？
-
-```text
-subq	$64, %rsp	         # 將 stack pointer 減去 64 bytes，為所有的區域變數預留空間。
-```
-
-當 `main` 函數開始執行時，`subq $64, %rsp` 指令會為所有的區域變數 (包括 `p`, `s`, `x` 等) 在 stack 上保留 64 bytes 的空間。編譯器的工作就是決定這 64 bytes 空間中，哪個位元組要放哪個變數。
-
-```text
-leaq	-14(%rbp), %rax	         # 將 `p` 的位址 (%rbp - 14) 載入到 %rax 中
-```
-
-在這個例子中，編譯器決定把結構 `p`（我們知道它有 10 bytes）放在相對於 `%rbp` (frame pointer) 位移 -14 的地方。
-
 ### 結構 `p` 的地址會是 4-byte align 嗎？
 
 使用 `__attribute__((packed))` 會產生兩個主要影響：
@@ -198,6 +184,20 @@ void my_function() {
 編譯器完全可能將 `my_var` 緊跟在 `some_char` 後面存放，例如： `some_char` 在 0x0FFF，`my_var` 就可能從 0x1000 開始放，這種情況是 aligned。但也可能 `some_char` 在 0x1000，而 `my_var` 從 0x1001 開始放，這種情況就是 unaligned。
 
 因為 `packed` 屬性的緣故，結構 `p` 的地址不保證一定是 4-byte aligned。宣告成結構陣列中幾乎可以肯定會遇到 unaligned 的情況。
+
+### 結構 `p` 的地址如何決定？
+
+```text
+subq	$64, %rsp	         # 將 stack pointer 減去 64 bytes，為所有的區域變數預留空間。
+```
+
+當 `main` 函數開始執行時，`subq $64, %rsp` 指令會為所有的區域變數 (包括 `p`, `s`, `x` 等) 在 stack 上保留 64 bytes 的空間。編譯器的工作就是決定這 64 bytes 空間中，哪個位元組要放哪個變數。
+
+```text
+leaq	-14(%rbp), %rax	         # 將 `p` 的位址 (%rbp - 14) 載入到 %rax 中
+```
+
+在這個例子中，編譯器決定把結構 `p` 放在相對於 `%rbp` (frame pointer) 位移 -14 的地方。
 
 ## 程式碼 `main.s` 的說明
 
