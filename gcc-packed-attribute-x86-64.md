@@ -65,14 +65,14 @@ int main(int argc, char *argv[])
     p.e = 0x88;
     p.f = 0x99AA;
 
-    printf("sizeof(p):%lld\n", sizeof(p));
+    printf("sizeof(p):%zu\n", sizeof(p));
     printf("&p:%p\n", &p);
-    printf("p.a: %p, %8x, %lld\n", &p.a, p.a, sizeof(p.a));
-    printf("p.b: %p, %8x, %lld\n", &p.b, p.b, sizeof(p.b));
-    printf("p.c: %p, %8x, %lld\n", &p.c, p.c, sizeof(p.c));
-    printf("p.d: %p, %8x, %lld\n", &p.d, p.d, sizeof(p.d));
-    printf("p.e: %p, %8x, %lld\n", &p.e, p.e, sizeof(p.e));
-    printf("p.f: %p, %8x, %lld\n", &p.f, p.f, sizeof(p.f));
+    printf("p.a: %p, %8x, %zu\n", &p.a, p.a, sizeof(p.a));
+    printf("p.b: %p, %8x, %zu\n", &p.b, p.b, sizeof(p.b));
+    printf("p.c: %p, %8x, %zu\n", &p.c, p.c, sizeof(p.c));
+    printf("p.d: %p, %8x, %zu\n", &p.d, p.d, sizeof(p.d));
+    printf("p.e: %p, %8x, %zu\n", &p.e, p.e, sizeof(p.e));
+    printf("p.f: %p, %8x, %zu\n", &p.f, p.f, sizeof(p.f));
 
     uint32_t x = p.b;
     printf("\n");
@@ -90,14 +90,14 @@ int main(int argc, char *argv[])
     s.e = 0x88;
     s.f = 0x99AA;
 
-    printf("sizeof(s):%lld\n", sizeof(s));
+    printf("sizeof(s):%zu\n", sizeof(s));
     printf("&s:%p\n", &s);
-    printf("s.a: %p, %8x, %lld\n", &s.a, s.a, sizeof(s.a));
-    printf("s.b: %p, %8x, %lld\n", &s.b, s.b, sizeof(s.b));
-    printf("s.c: %p, %8x, %lld\n", &s.c, s.c, sizeof(s.c));
-    printf("s.d: %p, %8x, %lld\n", &s.d, s.d, sizeof(s.d));
-    printf("s.e: %p, %8x, %lld\n", &s.e, s.e, sizeof(s.e));
-    printf("s.f: %p, %8x, %lld\n", &s.f, s.f, sizeof(s.f));
+    printf("s.a: %p, %8x, %zu\n", &s.a, s.a, sizeof(s.a));
+    printf("s.b: %p, %8x, %zu\n", &s.b, s.b, sizeof(s.b));
+    printf("s.c: %p, %8x, %zu\n", &s.c, s.c, sizeof(s.c));
+    printf("s.d: %p, %8x, %zu\n", &s.d, s.d, sizeof(s.d));
+    printf("s.e: %p, %8x, %zu\n", &s.e, s.e, sizeof(s.e));
+    printf("s.f: %p, %8x, %zu\n", &s.f, s.f, sizeof(s.f));
 
     return 0;
 }
@@ -223,41 +223,41 @@ leaq	-14(%rbp), %rax	         # 將 `p` 的位址 (%rbp - 14) 載入到 %rax 中
 	.text
 	.section .rdata,"dr"
 .LC0:
-	.ascii "sizeof(p):%lld\12\0"
+	.ascii "sizeof(p):%zu\12\0"
 .LC1:
 	.ascii "&p:%p\12\0"
 .LC2:
-	.ascii "p.b: %p, %8x, %lld\12\0"
+	.ascii "p.b: %p, %8x, %zu\12\0"
 .LC3:
-	.ascii "p.f: %p, %8x, %lld\12\0"
+	.ascii "p.f: %p, %8x, %zu\12\0"
 .LC4:
-	.ascii "p.a: %p, %8x, %lld\12\0"
+	.ascii "p.a: %p, %8x, %zu\12\0"
 .LC5:
-	.ascii "p.c: %p, %8x, %lld\12\0"
+	.ascii "p.c: %p, %8x, %zu\12\0"
 .LC6:
-	.ascii "p.d: %p, %8x, %lld\12\0"
+	.ascii "p.d: %p, %8x, %zu\12\0"
 .LC7:
-	.ascii "p.e: %p, %8x, %lld\12\0"
+	.ascii "p.e: %p, %8x, %zu\12\0"
 .LC8:
 	.ascii "x  : %x\12\0"
 .LC9:
 	.ascii "p.b: %x\12\0"
 .LC10:
-	.ascii "sizeof(s):%lld\12\0"
+	.ascii "sizeof(s):%zu\12\0"
 .LC11:
 	.ascii "&s:%p\12\0"
 .LC12:
-	.ascii "s.a: %p, %8x, %lld\12\0"
+	.ascii "s.a: %p, %8x, %zu\12\0"
 .LC13:
-	.ascii "s.b: %p, %8x, %lld\12\0"
+	.ascii "s.b: %p, %8x, %zu\12\0"
 .LC14:
-	.ascii "s.c: %p, %8x, %lld\12\0"
+	.ascii "s.c: %p, %8x, %zu\12\0"
 .LC15:
-	.ascii "s.d: %p, %8x, %lld\12\0"
+	.ascii "s.d: %p, %8x, %zu\12\0"
 .LC16:
-	.ascii "s.e: %p, %8x, %lld\12\0"
+	.ascii "s.e: %p, %8x, %zu\12\0"
 .LC17:
-	.ascii "s.f: %p, %8x, %lld\12\0"
+	.ascii "s.f: %p, %8x, %zu\12\0"
 ```
 
 * `.rdata` 存放 read-only data，在這個程式中主要都是放 `printf(...)` 所需要的格式化字串。
@@ -537,41 +537,41 @@ precise format of the comments is subject to change.
 	.text
 	.section .rdata,"dr"
 .LC0:
-	.ascii "sizeof(p):%lld\12\0"
+	.ascii "sizeof(p):%zu\12\0"
 .LC1:
 	.ascii "&p:%p\12\0"
 .LC2:
-	.ascii "p.a: %p, %8x, %lld\12\0"
+	.ascii "p.a: %p, %8x, %zu\12\0"
 .LC3:
-	.ascii "p.b: %p, %8x, %lld\12\0"
+	.ascii "p.b: %p, %8x, %zu\12\0"
 .LC4:
-	.ascii "p.c: %p, %8x, %lld\12\0"
+	.ascii "p.c: %p, %8x, %zu\12\0"
 .LC5:
-	.ascii "p.d: %p, %8x, %lld\12\0"
+	.ascii "p.d: %p, %8x, %zu\12\0"
 .LC6:
-	.ascii "p.e: %p, %8x, %lld\12\0"
+	.ascii "p.e: %p, %8x, %zu\12\0"
 .LC7:
-	.ascii "p.f: %p, %8x, %lld\12\0"
+	.ascii "p.f: %p, %8x, %zu\12\0"
 .LC8:
 	.ascii "x  : %x\12\0"
 .LC9:
 	.ascii "p.b: %x\12\0"
 .LC10:
-	.ascii "sizeof(s):%lld\12\0"
+	.ascii "sizeof(s):%zu\12\0"
 .LC11:
 	.ascii "&s:%p\12\0"
 .LC12:
-	.ascii "s.a: %p, %8x, %lld\12\0"
+	.ascii "s.a: %p, %8x, %zu\12\0"
 .LC13:
-	.ascii "s.b: %p, %8x, %lld\12\0"
+	.ascii "s.b: %p, %8x, %zu\12\0"
 .LC14:
-	.ascii "s.c: %p, %8x, %lld\12\0"
+	.ascii "s.c: %p, %8x, %zu\12\0"
 .LC15:
-	.ascii "s.d: %p, %8x, %lld\12\0"
+	.ascii "s.d: %p, %8x, %zu\12\0"
 .LC16:
-	.ascii "s.e: %p, %8x, %lld\12\0"
+	.ascii "s.e: %p, %8x, %zu\12\0"
 .LC17:
-	.ascii "s.f: %p, %8x, %lld\12\0"
+	.ascii "s.f: %p, %8x, %zu\12\0"
 	.text
 	.globl	main
 	.def	main;	.scl	2;	.type	32;	.endef
@@ -606,7 +606,7 @@ main:
 	movb	$-120, -7(%rbp)	         # p.e，寫入 1 byte 到 (%rbp - 7)
  # main.c:34:     p.f = 0x99AA;
 	movw	$-26198, -6(%rbp)	 # p.f，寫入 2 bytes (word) 到 (%rbp - 6)
- # main.c:36:     printf("sizeof(p):%lld\n", sizeof(p));
+ # main.c:36:     printf("sizeof(p):%zu\n", sizeof(p));
 	leaq	.LC0(%rip), %rax	 #, tmp124
 	movl	$10, %edx	 #,
 	movq	%rax, %rcx	 # tmp124,
@@ -616,9 +616,9 @@ main:
 	leaq	.LC1(%rip), %rcx	 #, tmp126
 	movq	%rax, %rdx	 # tmp125,
 	call	printf	 #
- # main.c:38:     printf("p.a: %p, %8x, %lld\n", &p.a, p.a, sizeof(p.a));
+ # main.c:38:     printf("p.a: %p, %8x, %zu\n", &p.a, p.a, sizeof(p.a));
 	movzbl	-14(%rbp), %eax	 # p.a, _1
- # main.c:38:     printf("p.a: %p, %8x, %lld\n", &p.a, p.a, sizeof(p.a));
+ # main.c:38:     printf("p.a: %p, %8x, %zu\n", &p.a, p.a, sizeof(p.a));
 	movzbl	%al, %edx	 # _1, _2
 	leaq	-14(%rbp), %rax	 #, tmp127
 	leaq	.LC2(%rip), %rcx	 #, tmp128
@@ -626,7 +626,7 @@ main:
 	movl	%edx, %r8d	 # _2,
 	movq	%rax, %rdx	 # tmp127,
 	call	printf	 #
- # main.c:39:     printf("p.b: %p, %8x, %lld\n", &p.b, p.b, sizeof(p.b));
+ # main.c:39:     printf("p.b: %p, %8x, %zu\n", &p.b, p.b, sizeof(p.b));
 	movl	-13(%rbp), %ecx	 # p.b, _3
 	leaq	-14(%rbp), %rax	 #, tmp129
 	leaq	1(%rax), %rdx	 #, tmp130
@@ -635,9 +635,9 @@ main:
 	movl	%ecx, %r8d	 # _3,
 	movq	%rax, %rcx	 # tmp131,
 	call	printf	 #
- # main.c:40:     printf("p.c: %p, %8x, %lld\n", &p.c, p.c, sizeof(p.c));
+ # main.c:40:     printf("p.c: %p, %8x, %zu\n", &p.c, p.c, sizeof(p.c));
 	movzbl	-9(%rbp), %eax	 # p.c, _4
- # main.c:40:     printf("p.c: %p, %8x, %lld\n", &p.c, p.c, sizeof(p.c));
+ # main.c:40:     printf("p.c: %p, %8x, %zu\n", &p.c, p.c, sizeof(p.c));
 	movzbl	%al, %ecx	 # _4, _5
 	leaq	-14(%rbp), %rax	 #, tmp132
 	leaq	5(%rax), %rdx	 #, tmp133
@@ -646,9 +646,9 @@ main:
 	movl	%ecx, %r8d	 # _5,
 	movq	%rax, %rcx	 # tmp134,
 	call	printf	 #
- # main.c:41:     printf("p.d: %p, %8x, %lld\n", &p.d, p.d, sizeof(p.d));
+ # main.c:41:     printf("p.d: %p, %8x, %zu\n", &p.d, p.d, sizeof(p.d));
 	movzbl	-8(%rbp), %eax	 # p.d, _6
- # main.c:41:     printf("p.d: %p, %8x, %lld\n", &p.d, p.d, sizeof(p.d));
+ # main.c:41:     printf("p.d: %p, %8x, %zu\n", &p.d, p.d, sizeof(p.d));
 	movzbl	%al, %ecx	 # _6, _7
 	leaq	-14(%rbp), %rax	 #, tmp135
 	leaq	6(%rax), %rdx	 #, tmp136
@@ -657,9 +657,9 @@ main:
 	movl	%ecx, %r8d	 # _7,
 	movq	%rax, %rcx	 # tmp137,
 	call	printf	 #
- # main.c:42:     printf("p.e: %p, %8x, %lld\n", &p.e, p.e, sizeof(p.e));
+ # main.c:42:     printf("p.e: %p, %8x, %zu\n", &p.e, p.e, sizeof(p.e));
 	movzbl	-7(%rbp), %eax	 # p.e, _8
- # main.c:42:     printf("p.e: %p, %8x, %lld\n", &p.e, p.e, sizeof(p.e));
+ # main.c:42:     printf("p.e: %p, %8x, %zu\n", &p.e, p.e, sizeof(p.e));
 	movzbl	%al, %ecx	 # _8, _9
 	leaq	-14(%rbp), %rax	 #, tmp138
 	leaq	7(%rax), %rdx	 #, tmp139
@@ -668,9 +668,9 @@ main:
 	movl	%ecx, %r8d	 # _9,
 	movq	%rax, %rcx	 # tmp140,
 	call	printf	 #
- # main.c:43:     printf("p.f: %p, %8x, %lld\n", &p.f, p.f, sizeof(p.f));
+ # main.c:43:     printf("p.f: %p, %8x, %zu\n", &p.f, p.f, sizeof(p.f));
 	movzwl	-6(%rbp), %eax	 # p.f, _10
- # main.c:43:     printf("p.f: %p, %8x, %lld\n", &p.f, p.f, sizeof(p.f));
+ # main.c:43:     printf("p.f: %p, %8x, %zu\n", &p.f, p.f, sizeof(p.f));
 	movzwl	%ax, %ecx	 # _10, _11
 	leaq	-14(%rbp), %rax	 #, tmp141
 	leaq	8(%rax), %rdx	 #, tmp142
@@ -716,7 +716,7 @@ main:
 	movb	$-120, -22(%rbp)	 # 寫入 1 byte 到 (%rbp - 22)
  # main.c:59:     s.f = 0x99AA;
 	movw	$-26198, -20(%rbp)	 # 寫入 2 bytes 到 (%rbp - 20)
- # main.c:61:     printf("sizeof(s):%lld\n", sizeof(s));
+ # main.c:61:     printf("sizeof(s):%zu\n", sizeof(s));
 	leaq	.LC10(%rip), %rax	 #, tmp149
 	movl	$16, %edx	 #,
 	movq	%rax, %rcx	 # tmp149,
@@ -726,9 +726,9 @@ main:
 	leaq	.LC11(%rip), %rcx	 #, tmp151
 	movq	%rax, %rdx	 # tmp150,
 	call	printf	 #
- # main.c:63:     printf("s.a: %p, %8x, %lld\n", &s.a, s.a, sizeof(s.a));
+ # main.c:63:     printf("s.a: %p, %8x, %zu\n", &s.a, s.a, sizeof(s.a));
 	movzbl	-32(%rbp), %eax	 # s.a, _13
- # main.c:63:     printf("s.a: %p, %8x, %lld\n", &s.a, s.a, sizeof(s.a));
+ # main.c:63:     printf("s.a: %p, %8x, %zu\n", &s.a, s.a, sizeof(s.a));
 	movzbl	%al, %edx	 # _13, _14
 	leaq	-32(%rbp), %rax	 #, tmp152
 	leaq	.LC12(%rip), %rcx	 #, tmp153
@@ -736,7 +736,7 @@ main:
 	movl	%edx, %r8d	 # _14,
 	movq	%rax, %rdx	 # tmp152,
 	call	printf	 #
- # main.c:64:     printf("s.b: %p, %8x, %lld\n", &s.b, s.b, sizeof(s.b));
+ # main.c:64:     printf("s.b: %p, %8x, %zu\n", &s.b, s.b, sizeof(s.b));
 	movl	-28(%rbp), %ecx	 # s.b, _15
 	leaq	-32(%rbp), %rax	 #, tmp154
 	leaq	4(%rax), %rdx	 #, tmp155
@@ -745,9 +745,9 @@ main:
 	movl	%ecx, %r8d	 # _15,
 	movq	%rax, %rcx	 # tmp156,
 	call	printf	 #
- # main.c:65:     printf("s.c: %p, %8x, %lld\n", &s.c, s.c, sizeof(s.c));
+ # main.c:65:     printf("s.c: %p, %8x, %zu\n", &s.c, s.c, sizeof(s.c));
 	movzbl	-24(%rbp), %eax	 # s.c, _16
- # main.c:65:     printf("s.c: %p, %8x, %lld\n", &s.c, s.c, sizeof(s.c));
+ # main.c:65:     printf("s.c: %p, %8x, %zu\n", &s.c, s.c, sizeof(s.c));
 	movzbl	%al, %ecx	 # _16, _17
 	leaq	-32(%rbp), %rax	 #, tmp157
 	leaq	8(%rax), %rdx	 #, tmp158
@@ -756,9 +756,9 @@ main:
 	movl	%ecx, %r8d	 # _17,
 	movq	%rax, %rcx	 # tmp159,
 	call	printf	 #
- # main.c:66:     printf("s.d: %p, %8x, %lld\n", &s.d, s.d, sizeof(s.d));
+ # main.c:66:     printf("s.d: %p, %8x, %zu\n", &s.d, s.d, sizeof(s.d));
 	movzbl	-23(%rbp), %eax	 # s.d, _18
- # main.c:66:     printf("s.d: %p, %8x, %lld\n", &s.d, s.d, sizeof(s.d));
+ # main.c:66:     printf("s.d: %p, %8x, %zu\n", &s.d, s.d, sizeof(s.d));
 	movzbl	%al, %ecx	 # _18, _19
 	leaq	-32(%rbp), %rax	 #, tmp160
 	leaq	9(%rax), %rdx	 #, tmp161
@@ -767,9 +767,9 @@ main:
 	movl	%ecx, %r8d	 # _19,
 	movq	%rax, %rcx	 # tmp162,
 	call	printf	 #
- # main.c:67:     printf("s.e: %p, %8x, %lld\n", &s.e, s.e, sizeof(s.e));
+ # main.c:67:     printf("s.e: %p, %8x, %zu\n", &s.e, s.e, sizeof(s.e));
 	movzbl	-22(%rbp), %eax	 # s.e, _20
- # main.c:67:     printf("s.e: %p, %8x, %lld\n", &s.e, s.e, sizeof(s.e));
+ # main.c:67:     printf("s.e: %p, %8x, %zu\n", &s.e, s.e, sizeof(s.e));
 	movzbl	%al, %ecx	 # _20, _21
 	leaq	-32(%rbp), %rax	 #, tmp163
 	leaq	10(%rax), %rdx	 #, tmp164
@@ -778,9 +778,9 @@ main:
 	movl	%ecx, %r8d	 # _21,
 	movq	%rax, %rcx	 # tmp165,
 	call	printf	 #
- # main.c:68:     printf("s.f: %p, %8x, %lld\n", &s.f, s.f, sizeof(s.f));
+ # main.c:68:     printf("s.f: %p, %8x, %zu\n", &s.f, s.f, sizeof(s.f));
 	movzwl	-20(%rbp), %eax	 # s.f, _22
- # main.c:68:     printf("s.f: %p, %8x, %lld\n", &s.f, s.f, sizeof(s.f));
+ # main.c:68:     printf("s.f: %p, %8x, %zu\n", &s.f, s.f, sizeof(s.f));
 	movzwl	%ax, %ecx	 # _22, _23
 	leaq	-32(%rbp), %rax	 #, tmp166
 	leaq	12(%rax), %rdx	 #, tmp167
