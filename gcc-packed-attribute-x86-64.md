@@ -199,11 +199,11 @@ leaq	-14(%rbp), %rax	         # 將 `p` 的位址 (%rbp - 14) 載入到 %rax 中
 
 在這個例子中，編譯器決定把結構 `p` 放在相對於 `%rbp` (frame pointer) 位移 -14 的地方。
 
-## 程式碼 `main.s` 的說明
+### 範例 `main.s` 程式碼說明
 
 此處分析參考附錄 B 中的 `main.s` 檔案。
 
-### 1. 檔案標頭與編譯器選項
+#### 1. 檔案標頭與編譯器選項
 
 ```text
 	.file	"main.c"
@@ -217,7 +217,7 @@ leaq	-14(%rbp), %rax	         # 將 `p` 的位址 (%rbp - 14) 載入到 %rax 中
 * `.file` 是 metadata，說明了原始檔案是 `main.c`。
 * 註解的部分則顯示了編譯器版本以及傳入的編譯器選項。
 
-### 2. 唯讀資料區段 `.rdata`
+#### 2. 唯讀資料區段 `.rdata`
 
 ```text
 	.text
@@ -264,7 +264,7 @@ leaq	-14(%rbp), %rax	         # 將 `p` 的位址 (%rbp - 14) 載入到 %rax 中
 * `.LC0`, `.LC1` 等是編譯器產生的**標籤**，用來在程式碼(組合語言)中引用這些字串。
 * `\12` 是 `\n` (換行符) 的八進位表示法，`\0` 是 C 語言字串的結尾符。
 
-### 3. 函數前導 (Prologue) 與堆疊 (Stack) 設定
+#### 3. 函數前導 (Prologue) 與堆疊 (Stack) 設定
 
 ```text
 	.text
@@ -289,7 +289,7 @@ main:
 * `pushq %rbp` 和 `movq %rsp, %rbp` 是 x86-64 架構中建立 stack frame 的標準作法。`%rbp` 現在是 main 函數的 frame pointer，所有的區域變數都將透過 `%rbp` 減去位移量來存取。
 * `subq $64, %rsp` 這行指令在 stack 上分配了 64 bytes 的空間。main 函數中的所有區域變數 (包括 `p`, `s`, `x`) 都會被放在這 64 bytes 的空間內。
 
-### 4. packed 結構 `p` 的操作
+#### 4. packed 結構 `p` 的操作
 
 ```text
  # main.c:27:     memset(&p, 0, sizeof(p));
@@ -328,7 +328,7 @@ main:
 * `p` 的起始位址是 `-14(%rbp)`。`%rbp` 通常是 16-byte aligned，所以 `%rbp` - 14 不會是 4-byte aligned。
 * `movl	$573785173, -13(%rbp)` 這行指令證實了編譯器正在對一個非 4-byte aligned 的位址執行 32-bit (4-byte) 寫入。同樣地，後續讀取 `p.b` (例如 `uint32_t x = p.b;` 或 `printf` 呼叫中) 也會被編譯為單一的 4-byte 讀取指令 (如 `movl -13(%rbp), %eax`)，這同樣是 unaligned 存取。
 
-### 5. 一般結構 `s` 的操作
+#### 5. 一般結構 `s` 的操作
 
 ```text
  # main.c:52:     memset(&s, 0, sizeof(s));
@@ -367,7 +367,7 @@ main:
 * 為了讓 `s.b` (4 bytes) 能對齊，編譯器在 `s.a` 和 `s.b` 之間自動插入了 3 bytes 的 padding。
 * `movl	$573785173, -28(%rbp)` 這行指令存取的位址 `%rbp` - 28 保證是 4-byte aligned，因此 CPU 執行效能最高。
 
-### 6. 函數結尾 (Epilogue)
+#### 6. 函數結尾 (Epilogue)
 
 ```text
  # main.c:70:     return 0;
@@ -525,7 +525,7 @@ ret
 The comments are intended for humans rather than machines and hence the
 precise format of the comments is subject to change.
 
-## 附錄 B: `main.s` 程式碼
+## 附錄 B: 範例 `main.s` 程式碼
 
 ```=
 	.file	"main.c"
