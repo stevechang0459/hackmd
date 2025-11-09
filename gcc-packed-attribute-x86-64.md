@@ -348,7 +348,7 @@ main:
  # main.c:58:     s.e = 0x88;
 	movb	$-120, -22(%rbp)	 # 寫入 1 byte 到 (%rbp - 22)
  # main.c:59:     s.f = 0x99AA;
-	movw	$-26198, -20(%rbp)	 # 寫入 2 bytes 到 (%rbp - 20)
+	movw	$-26198, -20(%rbp)	 # 寫入 2 bytes 到 (%rbp - 20)，加入了 1 byte padding
 ```
 
 結構 `s` 的memory layout 整理如下：
@@ -359,7 +359,7 @@ main:
 * `s.c` (1 byte) 被放在 `-24(%rbp)` ( = -28 + 4 )。
 * `s.d` (1 byte) 被放在 `-23(%rbp)` ( = -24 + 1 )。
 * `s.e` (1 byte) 被放在 `-22(%rbp)` ( = -23 + 1 )。
-* `s.f` (2 byte) 被放在 `-20(%rbp)` ( = -22 + 2 )。
+* `s.f` (2 byte) 被放在 `-20(%rbp)` ( = -22 + 2 )，加入了 1 byte padding。
 
 ---
 
@@ -715,7 +715,7 @@ main:
  # main.c:58:     s.e = 0x88;
 	movb	$-120, -22(%rbp)	 # 寫入 1 byte 到 (%rbp - 22)
  # main.c:59:     s.f = 0x99AA;
-	movw	$-26198, -20(%rbp)	 # 寫入 2 bytes 到 (%rbp - 20)
+	movw	$-26198, -20(%rbp)	 # 寫入 2 bytes 到 (%rbp - 20)，加入了 1 byte padding
  # main.c:61:     printf("sizeof(s):%zu\n", sizeof(s));
 	leaq	.LC10(%rip), %rax	 #, tmp149
 	movl	$16, %edx	 #,
