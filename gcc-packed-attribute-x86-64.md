@@ -21,7 +21,7 @@ struct foo
 
 *Note:* The 4.1, 4.2 and 4.3 series of GCC ignore the `packed` attribute on bitfields of type `char`. This has been fixed in GCC 4.4 but the change can lead to differences in the structure layout. See the documentation of `-Wpacked-bitfield-compat` for more information.
 
-<https://gcc.gnu.org/onlinedocs/gcc-15.2.0/gcc/>
+<https://gcc.gnu.org/onlinedocs/gcc-15.2.0/gcc/Common-Variable-Attributes.html#index-packed-variable-attribute>
 
 ## C 程式碼
 
@@ -103,7 +103,439 @@ int main(int argc, char *argv[])
 }
 ```
 
-## Assembly
+## 執行結果
+
+```text
+# ./bin/c-test.exe
+sizeof(p):10
+&p:000000E34CFFFAA2
+p.b: 000000E34CFFFAA2, 22334455, 4
+p.f: 000000E34CFFFAA6,     99aa, 2
+p.a: 000000E34CFFFAA8,       11, 1
+p.c: 000000E34CFFFAA9,       66, 1
+p.d: 000000E34CFFFAAA,       77, 1
+p.e: 000000E34CFFFAAB,       88, 1
+
+x  : 22334455
+p.b: 22334455
+
+sizeof(s):16
+&s:000000E34CFFFA90
+s.a: 000000E34CFFFA90,       11, 1
+s.b: 000000E34CFFFA94, 22334455, 4
+s.c: 000000E34CFFFA98,       66, 1
+s.d: 000000E34CFFFA99,       77, 1
+s.e: 000000E34CFFFA9A,       88, 1
+s.f: 000000E34CFFFA9C,     99aa, 2
+```
+
+## 程式碼 `main.s` 的說明
+
+此處分析參考附錄 B 中的 `main.s` 檔案。
+
+### 1. 檔案標頭與編譯器選項
+
+```
+	.file	"main.c"
+ # GNU C23 (Rev5, Built by MSYS2 project) version 15.1.0 (x86_64-w64-mingw32)
+ #	compiled by GNU C version 15.1.0, GMP version 6.3.0, MPFR version 4.2.2, MPC version 1.3.1, isl version isl-0.27-GMP
+
+ # GGC heuristics: --param ggc-min-expand=100 --param ggc-min-heapsize=131072
+ # options passed: -mtune=generic -march=nocona -g0 -O0
+```
+
+* `.file` 是 metadata，說明了原始檔案是 `main.c`。
+* 註解的部分則顯示了編譯器版本以及傳入的編譯器選項。
+
+### 2. 唯讀資料區段 `.rdata`
+
+```
+	.text
+	.section .rdata,"dr"
+.LC0:
+	.ascii "sizeof(p):%lld\12\0"
+.LC1:
+	.ascii "&p:%p\12\0"
+.LC2:
+	.ascii "p.b: %p, %8x, %lld\12\0"
+.LC3:
+	.ascii "p.f: %p, %8x, %lld\12\0"
+.LC4:
+	.ascii "p.a: %p, %8x, %lld\12\0"
+.LC5:
+	.ascii "p.c: %p, %8x, %lld\12\0"
+.LC6:
+	.ascii "p.d: %p, %8x, %lld\12\0"
+.LC7:
+	.ascii "p.e: %p, %8x, %lld\12\0"
+.LC8:
+	.ascii "x  : %x\12\0"
+.LC9:
+	.ascii "p.b: %x\12\0"
+.LC10:
+	.ascii "sizeof(s):%lld\12\0"
+.LC11:
+	.ascii "&s:%p\12\0"
+.LC12:
+	.ascii "s.a: %p, %8x, %lld\12\0"
+.LC13:
+	.ascii "s.b: %p, %8x, %lld\12\0"
+.LC14:
+	.ascii "s.c: %p, %8x, %lld\12\0"
+.LC15:
+	.ascii "s.d: %p, %8x, %lld\12\0"
+.LC16:
+	.ascii "s.e: %p, %8x, %lld\12\0"
+.LC17:
+	.ascii "s.f: %p, %8x, %lld\12\0"
+```
+
+* `.rdata` 存放 read-only data，在這個程式中主要都是放 `printf(...)` 所需要的格式化字串。
+* `.LC0`, `.LC1` 等是編譯器產生的**標籤**，用來在程式碼(組合語言)中引用這些字串。
+* `\12` 是 `\n` (換行符) 的八進位表示法，`\0` 是 C 語言字串的結尾符。
+
+### 3. 函數前導 (Prologue) 與堆疊 (Stack) 設定
+
+```
+	.text
+	.globl	main
+	.def	main;	.scl	2;	.type	32;	.endef
+	.seh_proc	main
+main:
+	pushq	%rbp	                 # 備份 caller 的 frame pointer (%rbp)
+	.seh_pushreg	%rbp
+	movq	%rsp, %rbp	         # 將目前的 stack pointer (%rsp) 備份到 frame pointer (%rbp) 中
+	.seh_setframe	%rbp, 0
+	subq	$64, %rsp	         # 將 stack pointer 減去 64 bytes，為所有的區域變數預留空間。
+	.seh_stackalloc	64
+	.seh_endprologue
+	movl	%ecx, 16(%rbp)	         # 儲存傳入的第1個參數 `argc`
+	movq	%rdx, 24(%rbp)	         # 儲存傳入的第2個參數 `argv`
+ # main.c:25: {
+	call	__main	                 # 呼叫 C 語言執行環境(runtime)的初始化
+```
+
+* main: 是函數的起點。
+* `pushq %rbp` 和 `movq %rsp, %rbp` 是 x86-64 架構中建立 stack frame 的標準作法。`%rbp` 現在是 main 函數的 frame pointer，所有的區域變數都將透過 `%rbp` 減去位移量來存取。
+* `subq $64, %rsp` 這行指令在 stack 上分配了 64 bytes 的空間。main 函數中的所有區域變數 (包括 `p`, `s`, `x`) 都會被放在這 64 bytes 的空間內。
+
+### 4. packed 結構 'p' 的操作
+
+```
+ # main.c:27:     memset(&p, 0, sizeof(p));
+	leaq	-14(%rbp), %rax	         # 將 `p` 的位址 (%rbp - 14) 載入到 %rax 中
+	movl	$10, %r8d	         # 設定第 3 個參數，size = 10，到 %r8d
+	movl	$0, %edx	         # 設定第 2 個參數，value = 0，到 %edx
+	movq	%rax, %rcx	         # 設定第 1 個參數，dest = p 的位址，到 %rcx
+	call	memset	                 # 呼叫 memset(%rcx, %edx, %r8d)
+ # main.c:29:     p.a = 0x11;
+	movb	$17, -8(%rbp)	         # 寫入 1 byte (17 = 0x11) 到 (%rbp - 8)
+ # main.c:30:     p.b = 0x22334455;
+	movl	$573785173, -14(%rbp)	 # 寫入 4 bytes (long) 到 (%rbp - 14)
+ # main.c:31:     p.c = 0x66;
+	movb	$102, -7(%rbp)	         # 寫入 1 byte 到 (%rbp - 7)
+ # main.c:32:     p.d = 0x77;
+	movb	$119, -6(%rbp)	         # 寫入 1 byte 到 (%rbp - 6)
+ # main.c:33:     p.e = 0x88;
+	movb	$-120, -5(%rbp)	         # 寫入 1 byte 到 (%rbp - 5)
+ # main.c:34:     p.f = 0x99AA;
+	movw	$-26198, -10(%rbp)	 # 寫入 2 bytes (word) 到 (%rbp - 10)
+```
+
+結構 `p` 的memory layout 整理如下：
+* `p.b` (4 bytes) 被放在 `-14(%rbp)`。
+* `p.f` (2 bytes) 被放在 `-10(%rbp)` ( = -14 + 4 )。
+* `p.a` (1 byte) 被放在 `-8(%rbp)` ( = -10 + 2 )。
+* `p.c` (1 byte) 被放在 `-7(%rbp)` ( = -8 + 1 )。
+* `p.d` (1 byte) 被放在 `-6(%rbp)` ( = -7 + 1 )。
+* `p.e` (1 byte) 被放在 `-5(%rbp)` ( = -6 + 1 )。
+
+---
+
+* `leaq` (Load Effective Address) 指令的用途是「計算有效地址」。它不會真的去讀取記憶體，只是做數學計算。
+* 從 `movl $10, %r8d` 這行指令可以知道 ，`sizeof(p)` 是 10 bytes。
+* `p` 的起始位址是 `-14(%rbp)`。`%rbp` 通常是 16-byte aligned，所以 `%rbp` - 14 不會是 4-byte aligned。
+* `movl	$573785173, -14(%rbp)` 這行指令證實了編譯器正在對一個非 4-byte aligned 的位址執行 32-bit (4-byte) 寫入。
+
+### 5. 一般結構 's' 的操作
+
+```
+ # main.c:52:     memset(&s, 0, sizeof(s));
+	leaq	-32(%rbp), %rax	         # 將 `s` 的位址 (%rbp - 32) 載入到 %rax 中
+	movl	$16, %r8d	         # 設定第 3 個參數，size = 16，到 %r8d
+	movl	$0, %edx	         # 設定第 2 個參數，value = 0，到 %edx
+	movq	%rax, %rcx	         # 設定第 1 個參數，dest = s 的位址，到 %rcx
+	call	memset	                 # 呼叫 memset(%rcx, %edx, %r8d)
+ # main.c:54:     s.a = 0x11;
+	movb	$17, -32(%rbp)	         # 寫入 1 byte 到 (%rbp - 32)
+ # main.c:55:     s.b = 0x22334455;
+	movl	$573785173, -28(%rbp)	 # 寫入 4 bytes 到 (%rbp - 28)
+ # main.c:56:     s.c = 0x66;
+	movb	$102, -24(%rbp)	         # 寫入 1 byte 到 (%rbp - 24)
+ # main.c:57:     s.d = 0x77;
+	movb	$119, -23(%rbp)	         # 寫入 1 byte 到 (%rbp - 23)
+ # main.c:58:     s.e = 0x88;
+	movb	$-120, -22(%rbp)	 # 寫入 1 byte 到 (%rbp - 22)
+ # main.c:59:     s.f = 0x99AA;
+	movw	$-26198, -20(%rbp)	 # 寫入 2 bytes 到 (%rbp - 20)
+```
+
+結構 `s` 的memory layout 整理如下：
+* `s` 的起始位址被放在 `-32(%rbp)`。`%rbp` - 32 保證是至少 4-byte aligned。
+* `s.a` (1 bytes) 被放在 `-32(%rbp)`。
+* `s.b` (4 bytes) 被放在 `-28(%rbp)` ( = -32 + 4 )。
+* `s.c` (1 byte) 被放在 `-24(%rbp)` ( = -28 + 4 )。
+* `s.d` (1 byte) 被放在 `-23(%rbp)` ( = -24 + 1 )。
+* `s.e` (1 byte) 被放在 `-22(%rbp)` ( = -23 + 1 )。
+* `s.f` (2 byte) 被放在 `-20(%rbp)` ( = -22 + 2 )。
+
+---
+
+* 從 `movl $16, %r8d` 這行指令可以知道 ，`sizeof(s)` 是 16 bytes。
+* 為了讓 `s.b` (4 bytes) 能對齊，編譯器在 `s.a` 和 `s.b` 之間自動插入了 3 bytes 的 padding。
+* `movl	$573785173, -28(%rbp)` 這行指令存取的位址 `%rbp` - 28 保證是 4-byte aligned，因此 CPU 執行效能最高。
+
+### 6. 函數結尾 (Epilogue)
+
+```
+ # main.c:70:     return 0;
+	movl	$0, %eax	         # 將傳回值 0 放入 %eax 暫存器。
+ # main.c:71: }
+	addq	$64, %rsp	         # 將 stack pointer 加上 64 bytes，釋放區域變數空間。
+	popq	%rbp	                 # 還原 caller 的 frame pointer。
+	ret	                         # 返回至 caller 的呼叫處。
+	.seh_endproc
+```
+
+* 在 `movl $0, %eax` 這行指令中，`%eax` 是 x86-64 架構上預設的函數傳回值暫存器。
+* `addq $64, %rsp` 和 `popq %rbp`：這兩行是函數前導 (Prologue) 的逆操作，它們會銷毀目前的 stack frame，並將 stack pointer 與 frame pointer 恢復到呼叫 `main` 函數之前的狀態。
+* `ret`：從 `main` 函數返回。
+
+## 記憶體佈局與組合語言分析
+
+### `packed` 屬性的兩種應用方式
+
+1. 應用於整個結構體 (如本文 `pxx` 範例):
+
+```c
+struct pxx { ... } __attribute__((packed));
+```
+
+這是最常見的用法。將 `packed` 屬性放在結構體定義的末尾，會使其效力遍及所有成員。編譯器會移除結構體內 所有 為了對齊而產生的 padding，並將每個成員（位元欄除外）的對齊要求降至 1-byte。如 `pxx` 範例所示，`f`, `a`, `c`, `d`, `e` 皆緊密地排列在 `b` 之後。
+
+2. 應用於特定成員 (如官方文件 `foo` 範例):
+
+```c
+struct foo
+{
+    char a;
+    int x[2] __attribute__ ((packed));
+};
+```
+
+在此範例中，`packed` 屬性僅作用於 `int x[2]` 成員。這會使得 `x` 成員的對齊要求被降至 1-byte。其主要效果是，編譯器不會在 `char a` 之後和 `int x[2]` 之前插入 3 bytes 的 padding (在 x86-64 上，`int` 通常需要 4-byte 對齊)。`struct foo` 的總大小將會是 1 + (4 \* 2) = 9 bytes，而非 4 + (4 \* 2) = 12 bytes。
+
+本文的 `pxx` 範例展示了第一種方式，接下來的組合語言分析也將基於此應用來展開。
+
+### `p` 的位置在哪？
+
+```text
+subq	$64, %rsp
+```
+
+當 `main` 函數開始執行時，`subq $64, %rsp` 指令會為所有的區域變數 (包括 `p`, `s`, `x` 等) 在 stack 上保留 64 bytes 的空間。編譯器的工作就是決定這 64 bytes 空間中，哪個位元組要放哪個變數。
+
+```text
+leaq -14(%rbp), %rax
+```
+
+在這個例子中，編譯器決定把 `p` 變數（我們知道它有 10 bytes）放在相對於 `%rbp` (frame pointer) 位移 -14 的地方。
+
+```c
+memset(&p, 0, sizeof(p));
+```
+
+```text
+# main.c:27:     memset(&p, 0, sizeof(p));
+.loc 1 27 5
+leaq	-14(%rbp), %rax	 #, tmp123
+movl	$10, %r8d	 #,
+movl	$0, %edx	 #,
+movq	%rax, %rcx	 # tmp123,
+call	memset	 #
+```
+
+### `b` 的地址會是 4-byte align 嗎？
+
+`b` 的地址是 `struct pxx` 結構本身的地址，因為 `b` 是第一個成員，offset 為 0。
+
+`__attribute__((packed))` 會產生兩個主要影響：
+
+1. `packed` 結構的總大小不一定會是 4 的倍數。
+2. 結構本身的對齊要求 (alignment requirement) 被降低。
+
+我們可以透過宣告存放 `packed` 結構的陣列來說明：
+
+```c
+struct pxx my_array[2];
+```
+
+假設 `my_array[0]` 的地址，也就是 `my_array[0].b` 的地址，恰好是 4-byte aligned，例如 0x1000。則 `my_array[1]` 的地址將會是 0x1000 + `sizeof(struct pxx)`，也就是 0x1000 + 10 = 0x100A。0x100A 不是 4 的倍數，因此 `my_array[1].b` 沒有 4-byte align。
+
+`packed` 屬性不僅移除了 padding，它還將整個 `struct pxx` 的對齊要求降至 1 byte。
+
+這意味著，即使我們只宣告一個單一變數：
+
+```c
+void my_function() {
+    uint8_t some_char;
+    struct pxx my_var; // 編譯器沒有義務將 my_var 放在 4-byte 邊界上
+}
+```
+
+編譯器完全可能將 `my_var` 緊跟在 `some_char` 後面存放，例如 `some_char` 在 0x0FFF，`my_var` 就可能從 0x1000 開始（這種情況是 aligned）。但也可能 `some_char` 在 0x1000，而 `my_var` 從 0x1001 開始（這種情況 `my_var.b` 就是 unaligned）。
+
+因為 `packed` 屬性的緣故，`b` 的地址不保證一定是 4-byte aligned。在陣列中幾乎可以肯定會遇到 unaligned 的情況。
+
+## 使用 `packed` 的時機
+
+`packed` 屬性是一個強大的工具，但它犧牲了效能來換取空間。
+
+### 效能取捨 (Performance Trade-off)
+1. CPU 存取速度：現代 CPU (如 x86-64) 被設計為在「對齊」的記憶體位址上讀取資料效率最高。例如，讀取一個 4-byte uint32_t 時，如果其位址是 4 的倍數 (如 0x...A94)，CPU 通常可以在一個時脈週期內完成。
+2. Unaligned 存取懲罰：當 CPU 被要求從一個「未對齊」的位址 (如 0x...AA2) 讀取 4 bytes 資料時，它無法一次完成。CPU 必須執行額外的工作，例如：
+    * 讀取兩次記憶體 (例如，一次讀取 0x...AA0 到 0x...AA3，另一次讀取 0x...AA4 到 0x...AA7)。
+    * 透過內部位移和遮罩 (shifting and masking) 來組合出所需的 4 bytes 資料 (0x...AA2 到 0x...AA5)。
+這個過程會比對齊存取慢上許多。
+
+在本文的例子中，`movl $573785173, -14(%rbp)` 就是一個 unaligned 存取，它的效能會低於 `movl $573785173, -28(%rbp)`。
+
+### 架構差異
+
+值得注意的是，雖然 x86-64 (CISC) 允許 unaligned 存取 (但有效能懲罰)，許多 RISC 架構 (如 ARM) 預設情況下不允許 unaligned 存取。在這些平台上，嘗試讀取 unaligned 位址可能會觸發 Exception 並使程式崩潰。
+
+### 合理的使用時機
+
+基於上述的種種考量，我們不應該為了節省一點點記憶體空間而濫用 `packed` 屬性，它僅須在適當的時機使用，常見情境包括：
+* **硬體暫存器映射**：當 C 結構需要直接映射 (map) 到一個硬體的暫存器佈局 (layout) 時，而該佈局不符合 C 語言的對齊規則。
+* **封包定義**：定義通訊協定 (protocol) 的封包結構時，若需要確保沒有任何 padding 以符合協定規範的確切位元組佈局時，會利用 `packed` 屬性來優化/簡化程式碼設計。
+* **檔案格式**：讀取或寫入特定且緊湊的二進位檔案格式 (例如，某些圖片檔、音訊檔的檔頭)。
+* **系統互通性**：當需要與其他系統 (或使用不同編譯器、不同 pack 規則的程式) 交換資料時，`packed` 屬性可以確保雙方對記憶體佈局有相同的認知。
+
+除非我們正在處理上述情況，否則應該優先使用 C 語言的預設對齊規則，因為這會是編譯器為我們的平台所做的最佳效能優化。
+
+## 附錄 A: GCC Options
+
+若想要閱讀帶有 C 註解的組合語言，但又不想產生額外除錯資訊的需求，編譯時我們可以使用下列 GCC 選項：
+
+```
+-g0 -O0 -fverbose-asm
+```
+
+詳細解釋見官方說明：
+
+<https://gcc.gnu.org/onlinedocs/gcc-15.2.0/gcc/Debugging-Options.html>
+
+**-glevel**
+**-ggdblevel**
+**-gvmslevel**
+
+Request debugging information and also use level to specify how much information.
+The default level is 2.
+* Level 0 produces no debug information at all. Thus, `-g0` negates `-g`.
+* Level 1 produces minimal information, enough for making backtraces in parts
+of the program that you don’t plan to debug. This includes descriptions of
+functions and external variables, and line number tables, but no information
+about local variables.
+* Level 3 includes extra information, such as all the macro definitions present in
+the program. Some debuggers support macro expansion when you use `-g3`.
+If you use multiple `-g` options, with or without level numbers, the last such
+option is the one that is effective.
+
+`-gdwarf` does not accept a concatenated debug level, to avoid confusion with
+`-gdwarf-level`. Instead use an additional `-glevel` option to change the debug
+level for DWARF.
+
+**-fverbose-asm**
+
+Put extra commentary information in the generated assembly code to make it
+more readable. This option is generally only of use to those who actually need
+to read the generated assembly code (perhaps while debugging the compiler
+itself).
+`-fno-verbose-asm`, the default, causes the extra information to be omitted and
+is useful when comparing two assembler files.
+
+The added comments include:
+* information on the compiler version and command-line options,
+* the source code lines associated with the assembly instructions, in the form
+FILENAME:LINENUMBER:CONTENT OF LINE,
+* hints on which high-level expressions correspond to the various assembly
+instruction operands.
+
+For example, given this C source file:
+
+```c
+int test (int n)
+{
+    int i;
+    int total = 0;
+    for (i = 0; i < n; i++)
+    total += i * i;
+    return total;
+}
+```
+
+compiling to (x86 64) assembly via -S and emitting the result direct to stdout
+via -o -
+
+```
+gcc -S test.c -fverbose-asm -Os -o -
+```
+
+gives output similar to this:
+
+```
+.file "test.c"
+# GNU C11 (GCC) version 7.0.0 20160809 (experimental) (x86_64-pc-linux-gnu)
+[...snip...]
+# options passed:
+[...snip...]
+.text
+.globl test
+.type test, @function
+test:
+.LFB0:
+.cfi_startproc
+# test.c:4: int total = 0;
+xorl %eax, %eax # <retval>
+# test.c:6: for (i = 0; i < n; i++)
+xorl %edx, %edx # i
+.L2:
+# test.c:6: for (i = 0; i < n; i++)
+cmpl %edi, %edx # n, i
+jge .L5 #,
+# test.c:7: total += i * i;
+movl %edx, %ecx # i, tmp92
+imull %edx, %ecx # i, tmp92
+# test.c:6: for (i = 0; i < n; i++)
+incl %edx # i
+# test.c:7: total += i * i;
+addl %ecx, %eax # tmp92, <retval>
+jmp .L2 #
+.L5:
+# test.c:10: }
+ret
+.cfi_endproc
+.LFE0:
+.size test, .-test
+.ident "GCC: (GNU) 7.0.0 20160809 (experimental)"
+.section .note.GNU-stack,"",@progbits
+```
+
+The comments are intended for humans rather than machines and hence the
+precise format of the comments is subject to change.
+
+## 附錄 B: `main.s` 程式碼
 
 ```=
 	.file	"main.c"
@@ -380,434 +812,6 @@ main:
 	.def	printf;	.scl	2;	.type	32;	.endef
 	.def	putchar;	.scl	2;	.type	32;	.endef
 ```
-
-## 執行結果
-
-```text
-# ./bin/c-test.exe
-sizeof(p):10
-&p:000000E34CFFFAA2
-p.b: 000000E34CFFFAA2, 22334455, 4
-p.f: 000000E34CFFFAA6,     99aa, 2
-p.a: 000000E34CFFFAA8,       11, 1
-p.c: 000000E34CFFFAA9,       66, 1
-p.d: 000000E34CFFFAAA,       77, 1
-p.e: 000000E34CFFFAAB,       88, 1
-
-x  : 22334455
-p.b: 22334455
-
-sizeof(s):16
-&s:000000E34CFFFA90
-s.a: 000000E34CFFFA90,       11, 1
-s.b: 000000E34CFFFA94, 22334455, 4
-s.c: 000000E34CFFFA98,       66, 1
-s.d: 000000E34CFFFA99,       77, 1
-s.e: 000000E34CFFFA9A,       88, 1
-s.f: 000000E34CFFFA9C,     99aa, 2
-```
-
-## `packed` 屬性的兩種應用方式
-
-`packed` 屬性有兩種使用方式：
-
-1. 應用於整個結構體 (如本文 `pxx` 範例):
-
-```c
-struct pxx { ... } __attribute__((packed));
-```
-
-這是最常見的用法。將 `packed` 屬性放在結構體定義的末尾，會使其效力遍及所有成員。編譯器會移除結構體內 所有 為了對齊而產生的 padding，並將每個成員（位元欄除外）的對齊要求降至 1-byte。如 `pxx` 範例所示，`f`, `a`, `c`, `d`, `e` 皆緊密地排列在 `b` 之後。
-
-2. 應用於特定成員 (如官方文件 `foo` 範例):
-
-```c
-struct foo
-{
-    char a;
-    int x[2] __attribute__ ((packed));
-};
-```
-
-在此範例中，`packed` 屬性僅作用於 `int x[2]` 成員。這會使得 `x` 成員的對齊要求被降至 1-byte。其主要效果是，編譯器不會在 `char a` 之後和 `int x[2]` 之前插入 3 bytes 的 padding (在 x86-64 上，`int` 通常需要 4-byte 對齊)。`struct foo` 的總大小將會是 1 + (4 \* 2) = 9 bytes，而非 4 + (4 \* 2) = 12 bytes。
-
-本文的 `pxx` 範例展示了第一種方式，接下來的組合語言分析也將基於此應用來展開。
-
-## `p` 的位置在哪？
-
-```text
-subq	$64, %rsp
-```
-
-當 `main` 函數開始執行時，`subq $64, %rsp` 指令會為所有的區域變數 (包括 `p`, `s`, `x` 等) 在 stack 上保留 64 bytes 的空間。編譯器的工作就是決定這 64 bytes 空間中，哪個位元組要放哪個變數。
-
-```text
-leaq -14(%rbp), %rax
-```
-
-在這個例子中，編譯器決定把 `p` 變數（我們知道它有 10 bytes）放在相對於 `%rbp` (frame pointer) 位移 -14 的地方。
-
-```c
-memset(&p, 0, sizeof(p));
-```
-
-```text
-# main.c:27:     memset(&p, 0, sizeof(p));
-.loc 1 27 5
-leaq	-14(%rbp), %rax	 #, tmp123
-movl	$10, %r8d	 #,
-movl	$0, %edx	 #,
-movq	%rax, %rcx	 # tmp123,
-call	memset	 #
-```
-
-## `b` 的地址會是 4-byte align 嗎？
-
-`b` 的地址是 `struct pxx` 結構本身的地址，因為 `b` 是第一個成員，offset 為 0。
-
-`__attribute__((packed))` 會產生兩個主要影響：
-
-1. `packed` 結構的總大小不一定會是 4 的倍數。
-2. 結構本身的對齊要求 (alignment requirement) 被降低。
-
-我們可以透過宣告存放 `packed` 結構的陣列來說明：
-
-```c
-struct pxx my_array[2];
-```
-
-假設 `my_array[0]` 的地址，也就是 `my_array[0].b` 的地址，恰好是 4-byte aligned，例如 0x1000。則 `my_array[1]` 的地址將會是 0x1000 + `sizeof(struct pxx)`，也就是 0x1000 + 10 = 0x100A。0x100A 不是 4 的倍數，因此 `my_array[1].b` 沒有 4-byte align。
-
-`packed` 屬性不僅移除了 padding，它還將整個 `struct pxx` 的對齊要求降至 1 byte。
-
-這意味著，即使我們只宣告一個單一變數：
-
-```c
-void my_function() {
-    uint8_t some_char;
-    struct pxx my_var; // 編譯器沒有義務將 my_var 放在 4-byte 邊界上
-}
-```
-
-編譯器完全可能將 `my_var` 緊跟在 `some_char` 後面存放，例如 `some_char` 在 0x0FFF，`my_var` 就可能從 0x1000 開始（這種情況是 aligned）。但也可能 `some_char` 在 0x1000，而 `my_var` 從 0x1001 開始（這種情況 `my_var.b` 就是 unaligned）。
-
-因為 `packed` 屬性的緣故，`b` 的地址不保證一定是 4-byte aligned。在陣列中幾乎可以肯定會遇到 unaligned 的情況。
-
-## 程式碼 `main.s` 的說明
-
-### 1. 檔案標頭與編譯器選項
-
-```
-	.file	"main.c"
- # GNU C23 (Rev5, Built by MSYS2 project) version 15.1.0 (x86_64-w64-mingw32)
- #	compiled by GNU C version 15.1.0, GMP version 6.3.0, MPFR version 4.2.2, MPC version 1.3.1, isl version isl-0.27-GMP
-
- # GGC heuristics: --param ggc-min-expand=100 --param ggc-min-heapsize=131072
- # options passed: -mtune=generic -march=nocona -g0 -O0
-```
-
-* `.file` 是 metadata，說明了原始檔案是 `main.c`。
-* 註解的部分則顯示了編譯器版本以及傳入的編譯器選項。
-
-### 2. 唯讀資料區段 `.rdata`
-
-```
-	.text
-	.section .rdata,"dr"
-.LC0:
-	.ascii "sizeof(p):%lld\12\0"
-.LC1:
-	.ascii "&p:%p\12\0"
-.LC2:
-	.ascii "p.b: %p, %8x, %lld\12\0"
-.LC3:
-	.ascii "p.f: %p, %8x, %lld\12\0"
-.LC4:
-	.ascii "p.a: %p, %8x, %lld\12\0"
-.LC5:
-	.ascii "p.c: %p, %8x, %lld\12\0"
-.LC6:
-	.ascii "p.d: %p, %8x, %lld\12\0"
-.LC7:
-	.ascii "p.e: %p, %8x, %lld\12\0"
-.LC8:
-	.ascii "x  : %x\12\0"
-.LC9:
-	.ascii "p.b: %x\12\0"
-.LC10:
-	.ascii "sizeof(s):%lld\12\0"
-.LC11:
-	.ascii "&s:%p\12\0"
-.LC12:
-	.ascii "s.a: %p, %8x, %lld\12\0"
-.LC13:
-	.ascii "s.b: %p, %8x, %lld\12\0"
-.LC14:
-	.ascii "s.c: %p, %8x, %lld\12\0"
-.LC15:
-	.ascii "s.d: %p, %8x, %lld\12\0"
-.LC16:
-	.ascii "s.e: %p, %8x, %lld\12\0"
-.LC17:
-	.ascii "s.f: %p, %8x, %lld\12\0"
-```
-
-* `.rdata` 存放 read-only data，在這個程式中主要都是放 `printf(...)` 所需要的格式化字串。
-* `.LC0`, `.LC1` 等是編譯器產生的**標籤**，用來在程式碼(組合語言)中引用這些字串。
-* `\12` 是 `\n` (換行符) 的八進位表示法，`\0` 是 C 語言字串的結尾符。
-
-### 3. 函數前導 (Prologue) 與堆疊 (Stack) 設定
-
-```
-	.text
-	.globl	main
-	.def	main;	.scl	2;	.type	32;	.endef
-	.seh_proc	main
-main:
-	pushq	%rbp	                 # 備份 caller 的 frame pointer (%rbp)
-	.seh_pushreg	%rbp
-	movq	%rsp, %rbp	         # 將目前的 stack pointer (%rsp) 備份到 frame pointer (%rbp) 中
-	.seh_setframe	%rbp, 0
-	subq	$64, %rsp	         # 將 stack pointer 減去 64 bytes，為所有的區域變數預留空間。
-	.seh_stackalloc	64
-	.seh_endprologue
-	movl	%ecx, 16(%rbp)	         # 儲存傳入的第1個參數 `argc`
-	movq	%rdx, 24(%rbp)	         # 儲存傳入的第2個參數 `argv`
- # main.c:25: {
-	call	__main	                 # 呼叫 C 語言執行環境(runtime)的初始化
-```
-
-* main: 是函數的起點。
-* `pushq %rbp` 和 `movq %rsp, %rbp` 是 x86-64 架構中建立 stack frame 的標準作法。`%rbp` 現在是 main 函數的 frame pointer，所有的區域變數都將透過 `%rbp` 減去位移量來存取。
-* `subq $64, %rsp` 這行指令在 stack 上分配了 64 bytes 的空間。main 函數中的所有區域變數 (包括 `p`, `s`, `x`) 都會被放在這 64 bytes 的空間內。
-
-### 4. packed 結構 'p' 的操作
-
-```
- # main.c:27:     memset(&p, 0, sizeof(p));
-	leaq	-14(%rbp), %rax	         # 將 `p` 的位址 (%rbp - 14) 載入到 %rax 中
-	movl	$10, %r8d	         # 設定第 3 個參數，size = 10，到 %r8d
-	movl	$0, %edx	         # 設定第 2 個參數，value = 0，到 %edx
-	movq	%rax, %rcx	         # 設定第 1 個參數，dest = p 的位址，到 %rcx
-	call	memset	                 # 呼叫 memset(%rcx, %edx, %r8d)
- # main.c:29:     p.a = 0x11;
-	movb	$17, -8(%rbp)	         # 寫入 1 byte (17 = 0x11) 到 (%rbp - 8)
- # main.c:30:     p.b = 0x22334455;
-	movl	$573785173, -14(%rbp)	 # 寫入 4 bytes (long) 到 (%rbp - 14)
- # main.c:31:     p.c = 0x66;
-	movb	$102, -7(%rbp)	         # 寫入 1 byte 到 (%rbp - 7)
- # main.c:32:     p.d = 0x77;
-	movb	$119, -6(%rbp)	         # 寫入 1 byte 到 (%rbp - 6)
- # main.c:33:     p.e = 0x88;
-	movb	$-120, -5(%rbp)	         # 寫入 1 byte 到 (%rbp - 5)
- # main.c:34:     p.f = 0x99AA;
-	movw	$-26198, -10(%rbp)	 # 寫入 2 bytes (word) 到 (%rbp - 10)
-```
-
-結構 `p` 的memory layout 整理如下：
-* `p.b` (4 bytes) 被放在 `-14(%rbp)`。
-* `p.f` (2 bytes) 被放在 `-10(%rbp)` ( = -14 + 4 )。
-* `p.a` (1 byte) 被放在 `-8(%rbp)` ( = -10 + 2 )。
-* `p.c` (1 byte) 被放在 `-7(%rbp)` ( = -8 + 1 )。
-* `p.d` (1 byte) 被放在 `-6(%rbp)` ( = -7 + 1 )。
-* `p.e` (1 byte) 被放在 `-5(%rbp)` ( = -6 + 1 )。
-
----
-
-* `leaq` (Load Effective Address) 指令的用途是「計算有效地址」。它不會真的去讀取記憶體，只是做數學計算。
-* 從 `movl $10, %r8d` 這行指令可以知道 ，`sizeof(p)` 是 10 bytes。
-* `p` 的起始位址是 `-14(%rbp)`。`%rbp` 通常是 16-byte aligned，所以 `%rbp` - 14 不會是 4-byte aligned。
-* `movl	$573785173, -14(%rbp)` 這行指令證實了編譯器正在對一個非 4-byte aligned 的位址執行 32-bit (4-byte) 寫入。
-
-### 5. 一般結構 's' 的操作
-
-```
- # main.c:52:     memset(&s, 0, sizeof(s));
-	leaq	-32(%rbp), %rax	         # 將 `s` 的位址 (%rbp - 32) 載入到 %rax 中
-	movl	$16, %r8d	         # 設定第 3 個參數，size = 16，到 %r8d
-	movl	$0, %edx	         # 設定第 2 個參數，value = 0，到 %edx
-	movq	%rax, %rcx	         # 設定第 1 個參數，dest = s 的位址，到 %rcx
-	call	memset	                 # 呼叫 memset(%rcx, %edx, %r8d)
- # main.c:54:     s.a = 0x11;
-	movb	$17, -32(%rbp)	         # 寫入 1 byte 到 (%rbp - 32)
- # main.c:55:     s.b = 0x22334455;
-	movl	$573785173, -28(%rbp)	 # 寫入 4 bytes 到 (%rbp - 28)
- # main.c:56:     s.c = 0x66;
-	movb	$102, -24(%rbp)	         # 寫入 1 byte 到 (%rbp - 24)
- # main.c:57:     s.d = 0x77;
-	movb	$119, -23(%rbp)	         # 寫入 1 byte 到 (%rbp - 23)
- # main.c:58:     s.e = 0x88;
-	movb	$-120, -22(%rbp)	 # 寫入 1 byte 到 (%rbp - 22)
- # main.c:59:     s.f = 0x99AA;
-	movw	$-26198, -20(%rbp)	 # 寫入 2 bytes 到 (%rbp - 20)
-```
-
-結構 `s` 的memory layout 整理如下：
-* `s` 的起始位址被放在 `-32(%rbp)`。`%rbp` - 32 保證是至少 4-byte aligned。
-* `s.a` (1 bytes) 被放在 `-32(%rbp)`。
-* `s.b` (4 bytes) 被放在 `-28(%rbp)` ( = -32 + 4 )。
-* `s.c` (1 byte) 被放在 `-24(%rbp)` ( = -28 + 4 )。
-* `s.d` (1 byte) 被放在 `-23(%rbp)` ( = -24 + 1 )。
-* `s.e` (1 byte) 被放在 `-22(%rbp)` ( = -23 + 1 )。
-* `s.f` (2 byte) 被放在 `-20(%rbp)` ( = -22 + 2 )。
-
----
-
-* 從 `movl $16, %r8d` 這行指令可以知道 ，`sizeof(s)` 是 16 bytes。
-* 為了讓 `s.b` (4 bytes) 能對齊，編譯器在 `s.a` 和 `s.b` 之間自動插入了 3 bytes 的 padding。
-* `movl	$573785173, -28(%rbp)` 這行指令存取的位址 `%rbp` - 28 保證是 4-byte aligned，因此 CPU 執行效能最高。
-
-### 6. 函數結尾 (Epilogue)
-
-```
- # main.c:70:     return 0;
-	movl	$0, %eax	         # 將傳回值 0 放入 %eax 暫存器。
- # main.c:71: }
-	addq	$64, %rsp	         # 將 stack pointer 加上 64 bytes，釋放區域變數空間。
-	popq	%rbp	                 # 還原 caller 的 frame pointer。
-	ret	                         # 返回至 caller 的呼叫處。
-	.seh_endproc
-```
-
-* 在 `movl $0, %eax` 這行指令中，`%eax` 是 x86-64 架構上預設的函數傳回值暫存器。
-* `addq $64, %rsp` 和 `popq %rbp`：這兩行是函數前導 (Prologue) 的逆操作，它們會銷毀目前的 stack frame，並將 stack pointer 與 frame pointer 恢復到呼叫 `main` 函數之前的狀態。
-* `ret`：從 `main` 函數返回。
-
-## 使用 `packed` 的時機
-
-`packed` 屬性是一個強大的工具，但它犧牲了效能來換取空間。
-
-### 效能取捨 (Performance Trade-off)
-1. CPU 存取速度：現代 CPU (如 x86-64) 被設計為在「對齊」的記憶體位址上讀取資料效率最高。例如，讀取一個 4-byte uint32_t 時，如果其位址是 4 的倍數 (如 0x...A94)，CPU 通常可以在一個時脈週期內完成。
-2. Unaligned 存取懲罰：當 CPU 被要求從一個「未對齊」的位址 (如 0x...AA2) 讀取 4 bytes 資料時，它無法一次完成。CPU 必須執行額外的工作，例如：
-    * 讀取兩次記憶體 (例如，一次讀取 0x...AA0 到 0x...AA3，另一次讀取 0x...AA4 到 0x...AA7)。
-    * 透過內部位移和遮罩 (shifting and masking) 來組合出所需的 4 bytes 資料 (0x...AA2 到 0x...AA5)。
-這個過程會比對齊存取慢上許多。
-
-在本文的例子中，`movl $573785173, -14(%rbp)` 就是一個 unaligned 存取，它的效能會低於 `movl $573785173, -28(%rbp)`。
-
-### 架構差異
-
-值得注意的是，雖然 x86-64 (CISC) 允許 unaligned 存取 (但有效能懲罰)，許多 RISC 架構 (如 ARM) 預設情況下不允許 unaligned 存取。在這些平台上，嘗試讀取 unaligned 位址可能會觸發 Exception 並使程式崩潰。
-
-### 合理的使用時機
-
-基於上述的種種考量，我們不應該為了節省一點點記憶體空間而濫用 `packed` 屬性，它僅須在適當的時機使用，常見情境包括：
-* **硬體暫存器映射**：當 C 結構需要直接映射 (map) 到一個硬體的暫存器佈局 (layout) 時，而該佈局不符合 C 語言的對齊規則。
-* **封包定義**：定義通訊協定 (protocol) 的封包結構時，若需要確保沒有任何 padding 以符合協定規範的確切位元組佈局時，會利用 `packed` 屬性來優化/簡化程式碼設計。
-* **檔案格式**：讀取或寫入特定且緊湊的二進位檔案格式 (例如，某些圖片檔、音訊檔的檔頭)。
-* **系統互通性**：當需要與其他系統 (或使用不同編譯器、不同 pack 規則的程式) 交換資料時，`packed` 屬性可以確保雙方對記憶體佈局有相同的認知。
-
-除非我們正在處理上述情況，否則應該優先使用 C 語言的預設對齊規則，因為這會是編譯器為我們的平台所做的最佳效能優化。
-
-## 附錄 A: GCC Options
-
-若想要閱讀帶有 C 註解的組合語言，但又不想產生額外除錯資訊的需求，編譯時我們可以使用下列 GCC 選項：
-
-```
--g0 -O0 -fverbose-asm
-```
-
-詳細解釋見官方說明：
-
-**-glevel**
-**-ggdblevel**
-**-gvmslevel**
-
-Request debugging information and also use level to specify how much information.
-The default level is 2.
-* Level 0 produces no debug information at all. Thus, `-g0` negates `-g`.
-* Level 1 produces minimal information, enough for making backtraces in parts
-of the program that you don’t plan to debug. This includes descriptions of
-functions and external variables, and line number tables, but no information
-about local variables.
-* Level 3 includes extra information, such as all the macro definitions present in
-the program. Some debuggers support macro expansion when you use `-g3`.
-If you use multiple `-g` options, with or without level numbers, the last such
-option is the one that is effective.
-
-`-gdwarf` does not accept a concatenated debug level, to avoid confusion with
-`-gdwarf-level`. Instead use an additional `-glevel` option to change the debug
-level for DWARF.
-
-**-fverbose-asm**
-
-Put extra commentary information in the generated assembly code to make it
-more readable. This option is generally only of use to those who actually need
-to read the generated assembly code (perhaps while debugging the compiler
-itself).
-`-fno-verbose-asm`, the default, causes the extra information to be omitted and
-is useful when comparing two assembler files.
-
-The added comments include:
-* information on the compiler version and command-line options,
-* the source code lines associated with the assembly instructions, in the form
-FILENAME:LINENUMBER:CONTENT OF LINE,
-* hints on which high-level expressions correspond to the various assembly
-instruction operands.
-
-For example, given this C source file:
-
-```c
-int test (int n)
-{
-    int i;
-    int total = 0;
-    for (i = 0; i < n; i++)
-    total += i * i;
-    return total;
-}
-```
-
-compiling to (x86 64) assembly via -S and emitting the result direct to stdout
-via -o -
-
-```
-gcc -S test.c -fverbose-asm -Os -o -
-```
-
-gives output similar to this:
-
-```
-.file "test.c"
-# GNU C11 (GCC) version 7.0.0 20160809 (experimental) (x86_64-pc-linux-gnu)
-[...snip...]
-# options passed:
-[...snip...]
-.text
-.globl test
-.type test, @function
-test:
-.LFB0:
-.cfi_startproc
-# test.c:4: int total = 0;
-xorl %eax, %eax # <retval>
-# test.c:6: for (i = 0; i < n; i++)
-xorl %edx, %edx # i
-.L2:
-# test.c:6: for (i = 0; i < n; i++)
-cmpl %edi, %edx # n, i
-jge .L5 #,
-# test.c:7: total += i * i;
-movl %edx, %ecx # i, tmp92
-imull %edx, %ecx # i, tmp92
-# test.c:6: for (i = 0; i < n; i++)
-incl %edx # i
-# test.c:7: total += i * i;
-addl %ecx, %eax # tmp92, <retval>
-jmp .L2 #
-.L5:
-# test.c:10: }
-ret
-.cfi_endproc
-.LFE0:
-.size test, .-test
-.ident "GCC: (GNU) 7.0.0 20160809 (experimental)"
-.section .note.GNU-stack,"",@progbits
-```
-
-The comments are intended for humans rather than machines and hence the
-precise format of the comments is subject to change.
 
 ## References
 
