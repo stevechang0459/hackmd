@@ -92,12 +92,12 @@ int main(int argc, char *argv[])
 
     printf("sizeof(s):%lld\n", sizeof(s));
     printf("&s:%p\n", &s);
-    printf("s.a: %p, %8x, %lld\n", &s.a, s.a, sizeof(p.a));
-    printf("s.b: %p, %8x, %lld\n", &s.b, s.b, sizeof(p.b));
-    printf("s.c: %p, %8x, %lld\n", &s.c, s.c, sizeof(p.c));
-    printf("s.d: %p, %8x, %lld\n", &s.d, s.d, sizeof(p.d));
-    printf("s.e: %p, %8x, %lld\n", &s.e, s.e, sizeof(p.e));
-    printf("s.f: %p, %8x, %lld\n", &s.f, s.f, sizeof(p.f));
+    printf("s.a: %p, %8x, %lld\n", &s.a, s.a, sizeof(s.a));
+    printf("s.b: %p, %8x, %lld\n", &s.b, s.b, sizeof(s.b));
+    printf("s.c: %p, %8x, %lld\n", &s.c, s.c, sizeof(s.c));
+    printf("s.d: %p, %8x, %lld\n", &s.d, s.d, sizeof(s.d));
+    printf("s.e: %p, %8x, %lld\n", &s.e, s.e, sizeof(s.e));
+    printf("s.f: %p, %8x, %lld\n", &s.f, s.f, sizeof(s.f));
 
     return 0;
 }
@@ -354,7 +354,7 @@ main:
 結構 `s` 的memory layout 整理如下：
 
 * `s` 的起始位址被放在 `-32(%rbp)`。`%rbp` - 32 保證是至少 4-byte aligned。
-* `s.a` (1 bytes) 被放在 `-32(%rbp)`。
+* `s.a` (1 byte) 被放在 `-32(%rbp)`。
 * `s.b` (4 bytes) 被放在 `-28(%rbp)` ( = -32 + 4 )，加入了 3 bytes padding。
 * `s.c` (1 byte) 被放在 `-24(%rbp)` ( = -28 + 4 )。
 * `s.d` (1 byte) 被放在 `-23(%rbp)` ( = -24 + 1 )。
@@ -726,9 +726,9 @@ main:
 	leaq	.LC11(%rip), %rcx	 #, tmp151
 	movq	%rax, %rdx	 # tmp150,
 	call	printf	 #
- # main.c:63:     printf("s.a: %p, %8x, %lld\n", &s.a, s.a, sizeof(p.a));
+ # main.c:63:     printf("s.a: %p, %8x, %lld\n", &s.a, s.a, sizeof(s.a));
 	movzbl	-32(%rbp), %eax	 # s.a, _13
- # main.c:63:     printf("s.a: %p, %8x, %lld\n", &s.a, s.a, sizeof(p.a));
+ # main.c:63:     printf("s.a: %p, %8x, %lld\n", &s.a, s.a, sizeof(s.a));
 	movzbl	%al, %edx	 # _13, _14
 	leaq	-32(%rbp), %rax	 #, tmp152
 	leaq	.LC12(%rip), %rcx	 #, tmp153
@@ -736,7 +736,7 @@ main:
 	movl	%edx, %r8d	 # _14,
 	movq	%rax, %rdx	 # tmp152,
 	call	printf	 #
- # main.c:64:     printf("s.b: %p, %8x, %lld\n", &s.b, s.b, sizeof(p.b));
+ # main.c:64:     printf("s.b: %p, %8x, %lld\n", &s.b, s.b, sizeof(s.b));
 	movl	-28(%rbp), %ecx	 # s.b, _15
 	leaq	-32(%rbp), %rax	 #, tmp154
 	leaq	4(%rax), %rdx	 #, tmp155
@@ -745,9 +745,9 @@ main:
 	movl	%ecx, %r8d	 # _15,
 	movq	%rax, %rcx	 # tmp156,
 	call	printf	 #
- # main.c:65:     printf("s.c: %p, %8x, %lld\n", &s.c, s.c, sizeof(p.c));
+ # main.c:65:     printf("s.c: %p, %8x, %lld\n", &s.c, s.c, sizeof(s.c));
 	movzbl	-24(%rbp), %eax	 # s.c, _16
- # main.c:65:     printf("s.c: %p, %8x, %lld\n", &s.c, s.c, sizeof(p.c));
+ # main.c:65:     printf("s.c: %p, %8x, %lld\n", &s.c, s.c, sizeof(s.c));
 	movzbl	%al, %ecx	 # _16, _17
 	leaq	-32(%rbp), %rax	 #, tmp157
 	leaq	8(%rax), %rdx	 #, tmp158
@@ -756,9 +756,9 @@ main:
 	movl	%ecx, %r8d	 # _17,
 	movq	%rax, %rcx	 # tmp159,
 	call	printf	 #
- # main.c:66:     printf("s.d: %p, %8x, %lld\n", &s.d, s.d, sizeof(p.d));
+ # main.c:66:     printf("s.d: %p, %8x, %lld\n", &s.d, s.d, sizeof(s.d));
 	movzbl	-23(%rbp), %eax	 # s.d, _18
- # main.c:66:     printf("s.d: %p, %8x, %lld\n", &s.d, s.d, sizeof(p.d));
+ # main.c:66:     printf("s.d: %p, %8x, %lld\n", &s.d, s.d, sizeof(s.d));
 	movzbl	%al, %ecx	 # _18, _19
 	leaq	-32(%rbp), %rax	 #, tmp160
 	leaq	9(%rax), %rdx	 #, tmp161
@@ -767,9 +767,9 @@ main:
 	movl	%ecx, %r8d	 # _19,
 	movq	%rax, %rcx	 # tmp162,
 	call	printf	 #
- # main.c:67:     printf("s.e: %p, %8x, %lld\n", &s.e, s.e, sizeof(p.e));
+ # main.c:67:     printf("s.e: %p, %8x, %lld\n", &s.e, s.e, sizeof(s.e));
 	movzbl	-22(%rbp), %eax	 # s.e, _20
- # main.c:67:     printf("s.e: %p, %8x, %lld\n", &s.e, s.e, sizeof(p.e));
+ # main.c:67:     printf("s.e: %p, %8x, %lld\n", &s.e, s.e, sizeof(s.e));
 	movzbl	%al, %ecx	 # _20, _21
 	leaq	-32(%rbp), %rax	 #, tmp163
 	leaq	10(%rax), %rdx	 #, tmp164
@@ -778,9 +778,9 @@ main:
 	movl	%ecx, %r8d	 # _21,
 	movq	%rax, %rcx	 # tmp165,
 	call	printf	 #
- # main.c:68:     printf("s.f: %p, %8x, %lld\n", &s.f, s.f, sizeof(p.f));
+ # main.c:68:     printf("s.f: %p, %8x, %lld\n", &s.f, s.f, sizeof(s.f));
 	movzwl	-20(%rbp), %eax	 # s.f, _22
- # main.c:68:     printf("s.f: %p, %8x, %lld\n", &s.f, s.f, sizeof(p.f));
+ # main.c:68:     printf("s.f: %p, %8x, %lld\n", &s.f, s.f, sizeof(s.f));
 	movzwl	%ax, %ecx	 # _22, _23
 	leaq	-32(%rbp), %rax	 #, tmp166
 	leaq	12(%rax), %rdx	 #, tmp167
